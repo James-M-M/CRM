@@ -1,0 +1,107 @@
+﻿@page "/CustomerInfo"
+@page "/CustomerInfo/{Id:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>New Customer</h3>
+
+@if (!string.IsNullOrEmpty(Messages))
+{
+    <div class="alert alert-success" role="alert">
+        @Messages
+    </div>
+}
+
+<EditForm Model="Customer" OnValidSubmit="OnSubmit" FormName="customer-info">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Customer.Name" class="form-control" id="name" placeholder="Customer Name" />
+                    <label for="name" class="form-label">Customer Name</label>
+                    <ValidationMessage For="@(() => Customer.Name)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Customer.PhoneContact" class="form-control" id="phone" placeholder="Phone Number" />
+                    <label for="phone" class="form-label">Phone Contact</label>
+                    <ValidationMessage For="@(() => Customer.PhoneContact)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Customer.EmailContact" class="form-control" id="email" placeholder="Email" />
+                    <label for="email" class="form-label">Email Contact</label>
+                    <ValidationMessage For="@(() => Customer.EmailContact)" />
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="Customer.Address" class="form-control" id="address" 
+                                 placeholder="Address" style="height: 100px" />
+                    <label for="address" class="form-label">Address</label>
+                    <ValidationMessage For="@(() => Customer.Address)" />
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-primary me-2" type="submit">Create Customer</button>
+                <button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Customer Customer { get; set; } = new();
+    private string? Messages { get; set; }
+    private string? CurrentUserId { get; set; }
+    [Parameter]
+    public string? Id { get; set; }
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        CurrentUserId = authState.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            Customer.CustomerId = Guid.NewGuid();
+            Customer.UserID = CurrentUserId ?? string.Empty;
+            await dbContext.Customers.AddAsync(Customer);
+            var result = await dbContext.SaveChangesAsync();
+
+            if (result > 0)
+            {
+                Messages = "Customer information saved successfully";
+                NavigateToList();
+            }
+            else
+            {
+                Messages = "Error: No changes were saved";
+            }
+        }
+        catch (Exception ex)
+        {
+            Messages = $"Error saving information: {ex.Message}";
+        }
+    }
+
+    private void NavigateToList()
+    {
+        navManager.NavigateTo("/");
+    }
+}

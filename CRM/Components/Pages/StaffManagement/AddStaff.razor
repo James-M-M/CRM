@@ -1,0 +1,194 @@
+﻿@page "/Addstaff"
+@page "/editstaff/{staffId:guid}"
+
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<h3>@(staffId.HasValue ? "Edit Staff Member" : "New Staff Member")</h3>
+
+@if (!string.IsNullOrEmpty(Messages))
+{
+    <div class="alert alert-success" role="alert">
+        @Messages
+    </div>
+}
+
+<EditForm Model="Staff" OnValidSubmit="OnSubmit" FormName="staff-info">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Staff.StaffName" class="form-control" id="staffName" placeholder="Staff Name" />
+                    <label for="staffName">Staff Name</label>
+                    <ValidationMessage For="@(() => Staff.StaffName)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Staff.Address" class="form-control" id="staffAddress" placeholder="Staff Address" />
+                    <label for="staffName">Staff Address</label>
+                    <ValidationMessage For="@(() => Staff.Address)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Staff.PhoneNum" class="form-control" id="staffPhoneNumber" placeholder="Staff Phone number" />
+                    <label for="staffName">Staff Phone number</label>
+                    <ValidationMessage For="@(() => Staff.PhoneNum)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Staff.Email" class="form-control" id="staffEmail" placeholder="Staff Email" />
+                    <label for="staffName">Staff Email</label>
+                    <ValidationMessage For="@(() => Staff.Email)" />
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <RadzenDropDown @bind-Value="Staff.UserId" Data=@Users TextProperty="@nameof(StringSelectListItem.TextValue)" ValueProperty="@nameof(StringSelectListItem.ID)"  class="form-control" id="userId" placeholder="User ID" />
+                    <label for="userId">User ID</label>
+                    <ValidationMessage For="@(() => Staff.UserId)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <RadzenDropDown Multiple="true" @bind-Value="Staff.ProjectIds" Data="@Projects" TextProperty="Name" ValueProperty="ProjectId" class="form-control" Placeholder="Select Projects..." id="projectSelection" />
+                    <label for="projectSelection">Assigned Projects</label>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-primary me-2" type="submit">Create Staff</button>
+                <button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public Guid? staffId { get; set; }
+
+    private AddStaffDto Staff { get; set; } = new();
+    private string? Messages { get; set; }
+    private List<StringSelectListItem> Users { get; set; } = new();
+    private List<Project> Projects { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        Users = await dbContext.Users
+            .Select(u => new StringSelectListItem
+            {
+                ID = u.Id,
+                TextValue = u.FullName
+            })
+            .ToListAsync();
+
+        Projects = await dbContext.Projects.ToListAsync();
+
+        if (staffId.HasValue)
+        {
+            var existingStaff = await dbContext.Staff
+                .Include(s => s.AssignedProjects)
+                .FirstOrDefaultAsync(s => s.StaffId == staffId.Value);
+
+            if (existingStaff != null)
+            {
+                Staff = new AddStaffDto
+                {
+                    StaffName = existingStaff.StaffName,
+                    UserId = existingStaff.UserID,
+                    ProjectIds = existingStaff.AssignedProjects.Select(p => p.ProjectId).ToList(),
+                    Address = existingStaff.Address,
+                    PhoneNum = existingStaff.PhoneNum,
+                    Email = existingStaff.Email
+                };
+            }
+            else
+            {
+                Messages = "Staff member not found.";
+            }
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            if (staffId.HasValue)
+            {
+                var existingStaff = await dbContext.Staff.Where(s => s.StaffId == staffId.Value).FirstOrDefaultAsync();
+                if (existingStaff == null)
+                {
+                    Messages = "Staff member not found.";
+                    return;
+                }
+                existingStaff.StaffName = Staff.StaffName;
+                existingStaff.Address = Staff.Address;
+                existingStaff.PhoneNum = Staff.PhoneNum;
+                existingStaff.Email = Staff.Email;
+                existingStaff.AssignedProjects = Staff.ProjectIds != null 
+                    ? await dbContext.Projects.Where(p => Staff.ProjectIds.Contains(p.ProjectId)).ToListAsync() 
+                    : new List<Project>();
+                dbContext.Staff.Update(existingStaff);
+            }
+            else
+            {
+                var NewStaff = new Staff
+                    {
+                        StaffId = Guid.NewGuid(),
+                        Address=Staff.Address,
+					    PhoneNum = Staff.PhoneNum,
+                        StaffName = Staff.StaffName,
+                        Email=Staff.Email,
+                        UserID = Staff.UserId.ToString(),
+                        AssignedProjects = Staff.ProjectIds != null
+                                ? await dbContext.Projects.Where(p => Staff.ProjectIds.Contains(p.ProjectId)).ToListAsync() : new() 
+                    };
+                await dbContext.Staff.AddAsync(NewStaff);
+            }
+
+            var result = await dbContext.SaveChangesAsync();
+
+            if (result > 0)
+            {
+                Messages = staffId.HasValue
+                    ? "Staff member updated successfully."
+                    : "Staff member created successfully.";
+                NavigateToList();
+            }
+            else
+            {
+                Messages = "Error: No changes were saved.";
+            }
+        }
+        catch (Exception ex)
+        {
+            Messages = $"Error saving staff member: {ex.Message}";
+            if (ex.InnerException != null)
+            {
+                Messages += $" | Inner: {ex.InnerException.Message}";
+            }
+        }
+    }
+
+    private void NavigateToList()
+    {
+        navManager.NavigateTo("/viewstaff");
+    }
+}

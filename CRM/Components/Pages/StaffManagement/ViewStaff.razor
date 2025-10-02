@@ -1,0 +1,158 @@
+﻿@page "/viewstaff"
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Staff Management</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="@(() => navManager.NavigateTo("/AddStaff"))">
+        <i class="oi oi-plus"></i> Add New Staff Member
+    </button>
+</div>
+
+@if (loading)
+{
+    <div class="spinner-border" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+}
+else if (!Staffs.Any())
+{
+    <div class="alert alert-info" role="alert">
+        No staff members found. Click 'Add New Staff Member' to create one.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Staff ID</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var staff in Staffs)
+                {
+                    <tr>
+                        <td>@staff.StaffName</td>
+                        <td>@staff.StaffId</td>
+						
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-primary btn-sm me-1" @onclick="@(() => ViewStaffInDetail(staff.StaffId))" title="View Staff">
+                                    <i class="oi oi-pencil"></i> View 
+                                </button>
+                                <button class="btn btn-warning btn-sm me-1" @onclick="@(() => EditStaff(staff.StaffId))" title="Edit Staff">
+                                    <i class="oi oi-pencil"></i> Edit
+                                </button>
+                                <button class="btn btn-danger btn-sm" @onclick="@(() => DeleteStaff(staff.StaffId))" title="Delete Staff">
+                                    <i class="oi oi-trash"></i> Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@if (showDeleteConfirmation)
+{
+    <div class="modal fade show" style="display: block" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirm Delete</h5>
+                    <button type="button" class="btn-close" @onclick="CancelDelete"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this staff member?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" @onclick="CancelDelete">Cancel</button>
+                    <button type="button" class="btn btn-danger" @onclick="ConfirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private List<Staff> Staffs = new();
+    private bool loading = true;
+    private bool showDeleteConfirmation = false;
+    private Guid StaffToDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadStaff();
+    }
+
+    private async Task LoadStaff()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity is not null && user.Identity.IsAuthenticated)
+            {
+                Staffs = await dbContext.Staff.ToListAsync();
+            }
+        }
+        finally
+        {
+            loading = false;
+        }
+    }
+    private void ViewStaffInDetail(Guid staffId)
+    {
+        navManager.NavigateTo($"/viewstaffmoredetail/{staffId}");
+	}
+    private void EditStaff(Guid staffId)
+    {
+        navManager.NavigateTo($"/editstaff/{staffId}");
+    }
+
+    private void DeleteStaff(Guid staffId)
+    {
+        StaffToDelete = staffId;
+        showDeleteConfirmation = true;
+    }
+
+    private void CancelDelete()
+    {
+        showDeleteConfirmation = false;
+        StaffToDelete = Guid.Empty;
+    }
+
+    private async Task ConfirmDelete()
+    {
+        try
+        {
+            var staff = await dbContext.Staff.FindAsync(StaffToDelete);
+            if (staff != null)
+            {
+                dbContext.Staff.Remove(staff);
+                await dbContext.SaveChangesAsync();
+                await LoadStaff();
+            }
+        }
+        finally
+        {
+            showDeleteConfirmation = false;
+            StaffToDelete = Guid.Empty;
+        }
+    }
+}

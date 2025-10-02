@@ -1,0 +1,116 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@page "/addproject"
+@page "/editproject/{ProjectId:guid}"
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>@(ProjectId == null ? "Add Project" : "Edit Project")</h3>
+
+@if (Message)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @(ProjectId == null ? "Project created successfully!" : "Project updated successfully!")
+        <button type="button" class="btn-close" @onclick="() => Message = false" aria-label="Close"></button>
+    </div>
+}
+
+<EditForm Model="Project" OnValidSubmit="OnSubmit" FormName="project-info">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="Project.Name" class="form-control" id="name" placeholder="Project Name" />
+                    <label for="name" class="form-label">Project Name</label>
+                    <ValidationMessage For="@(() => Project.Name)" />
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="Project.Details" class="form-control" id="details"
+                                   placeholder="Project Details" style="height: 100px" />
+                    <label for="details" class="form-label">Project Details</label>
+                    <ValidationMessage For="@(() => Project.Details)" />
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Project.CustomerId" class="form-select" id="customer">
+                        <option value="">Select Customer</option>
+                        @foreach (var customer in Customers)
+                        {
+                            <option value="@customer.CustomerId">@customer.Name</option>
+                        }
+                    </InputSelect>
+                    <label for="customer" class="form-label">Customer</label>
+                    <ValidationMessage For="@(() => Project.CustomerId)" />
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-primary me-2" type="submit">
+                    @(ProjectId == null ? "Create Project" : "Save Changes")
+                </button>
+                <button class="btn btn-secondary" type="button" @onclick="NavigateToHome">Cancel</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public Guid? ProjectId { get; set; }
+
+    private Project Project { get; set; } = new();
+    private List<Customer> Customers { get; set; } = new();
+    private bool Message = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Customers = await dbContext.Customers.ToListAsync();
+
+        if (ProjectId.HasValue)
+        {
+            var existingProject = await dbContext.Projects
+                .FirstOrDefaultAsync(p => p.ProjectId == ProjectId);
+            if (existingProject != null)
+            {
+                Project = existingProject;
+            }
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+        if (ProjectId.HasValue)
+        {
+            dbContext.Projects.Update(Project);
+        }
+        else
+        {
+            await dbContext.Projects.AddAsync(Project);
+        }
+
+        await dbContext.SaveChangesAsync();
+        Message = true;
+
+        if (!ProjectId.HasValue)
+        {
+            Project = new();
+        }
+        StateHasChanged();
+    }
+
+    private void NavigateToHome()
+    {
+        navManager.NavigateTo("/ViewProjects");
+    }
+}

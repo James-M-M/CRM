@@ -1,0 +1,14 @@
+﻿@page "/test"
+<h3>TestPage</h3>
+<RadzenCheckBox @bind-Value="rememberMe"
+                TrueValue="true"
+                FalseValue="false" />
+<RadzenLabel Text="Remember me" Component="RememberMe" />
+
+@code {
+    bool rememberMe = false;
+}
+
+
+
+

@@ -1,0 +1,56 @@
+﻿@page "/project/{ProjectId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<h3>Project Details</h3>
+
+@if (project != null)
+{
+    <div class="card">
+        <div class="card-body">
+            <h4 class="card-title">@project.Name</h4>
+            <div class="mb-3">
+                <strong>Customer:</strong> @project.Customer?.Name
+            </div>
+            <div class="mb-3">
+                <strong>Details:</strong>
+                <p>@project.Details</p>
+            </div>
+            <div class="mb-3">
+                <strong>Assigned Staff:</strong>
+                <ul>
+                    @foreach (var staff in project.AssignedStaff)
+                    {
+                        <li>@staff.StaffName</li>
+                    }
+                </ul>
+            </div>
+            <button class="btn btn-primary me-2" @onclick="@(() => navManager.NavigateTo($"/editproject/{ProjectId}"))">Edit Project</button>
+            <button class="btn btn-secondary" @onclick="GoBack">Back to Projects</button>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid ProjectId { get; set; }
+
+    private Project? project;
+
+    protected override async Task OnInitializedAsync()
+    {
+        project = await dbContext.Projects
+            .Include(p => p.Customer)
+            .Include(p => p.AssignedStaff)
+            .FirstOrDefaultAsync(p => p.ProjectId == ProjectId);
+    }
+
+    private void GoBack()
+    {
+        navManager.NavigateTo("/ViewProjects");
+    }
+}
