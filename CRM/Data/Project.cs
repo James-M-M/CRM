@@ -17,5 +17,8 @@
         public ICollection<Staff> AssignedStaff { get; set; } = new List<Staff>();
         public ICollection<ProjectAttachment> Attachments { get; set; } = new List<ProjectAttachment>();
         public ProjectPriority Priority { get; set; } = ProjectPriority.Medium;
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public bool isCompleted { get; set; } = false;
+        public DateTime? LastUpdated { get; set; }
     }
 }

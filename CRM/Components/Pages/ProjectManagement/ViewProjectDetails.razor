@@ -21,6 +21,14 @@
                 <p>@project.Details</p>
             </div>
             <div class="mb-3">
+                <strong>Creation time:</strong>
+                <p>@project.CreatedAt</p>
+            </div>
+            <div class="mb-3">
+                <strong>Last updated:</strong>
+                <p>@project.LastUpdated</p>
+            </div>
+            <div class="mb-3">
                 <strong>Assigned Staff:</strong>
                 <ul>
                     @foreach (var staff in project.AssignedStaff)
@@ -33,6 +41,18 @@
                 <strong>Project Priority:</strong>
                 <p>@project.Priority</p>
             </div>
+            @if (project != null)
+            {
+                <div class="col-md-6">
+                    @{
+                        var badgeClass = project.isCompleted ? "bg-success" : "bg-warning";
+                        var badgeText = project.isCompleted ? "Completed" : "In Progress";
+                    }
+                    <span class="badge @badgeClass">@badgeText</span>
+                </div>
+            }
+
+
             @if (project.Attachments?.Any() == true)
             {
                 <div class="mb-3">

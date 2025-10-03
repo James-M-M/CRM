@@ -68,6 +68,16 @@
                     <ValidationMessage For="@(() => Project.Priority)" />
                 </div>
             </div>
+            @if (ProjectId.HasValue)
+            {
+                <div class="col-md-6">
+                    <div class="form-check mb-3">
+                        <InputCheckbox @bind-Value="Project.isCompleted" class="form-check-input" id="isCompleted" />
+                        <label class="form-check-label" for="isCompleted">Project Completed</label>
+                    </div>
+                </div>
+            }
+
         </div>
         <div class="row mt-3">
             <div class="col">
@@ -153,7 +163,9 @@
     {
         if (ProjectId.HasValue)
         {
+            Project.LastUpdated = DateTime.UtcNow;
             dbContext.Projects.Update(Project);
+
         }
         else
         {

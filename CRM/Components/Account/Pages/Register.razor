@@ -26,6 +26,12 @@
             <DataAnnotationsValidator />
             <h2>Create a new account.</h2>
             <hr />
+            <div class="form-floating mb-3">
+                <InputText @bind-Value="Input.FullName" id="Input.FullName" class="form-control" autocomplete="name" aria-required="true" placeholder="Full Name" />
+                <label for="Input.FullName">Full Name</label>
+                <ValidationMessage For="() => Input.FullName" class="text-danger" />
+            </div>
+
             <ValidationSummary class="text-danger" role="alert" />
             <div class="form-floating mb-3">
                 <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
@@ -42,6 +48,7 @@
                 <label for="Input.ConfirmPassword">Confirm Password</label>
                 <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
             </div>
+
             <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
         </EditForm>
     </div>
@@ -72,7 +79,9 @@
         await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
         var emailStore = GetEmailStore();
         await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
+        user.FullName = Input.FullName;
         var result = await UserManager.CreateAsync(user, Input.Password);
+        
 
         if (!result.Succeeded)
         {
@@ -126,6 +135,10 @@
 
     private sealed class InputModel
     {
+        [Required]
+        [Display(Name = "Full Name")]
+        public string FullName { get; set; } = "";
+
         [Required]
         [EmailAddress]
         [Display(Name = "Email")]
