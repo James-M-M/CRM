@@ -1,3 +1,5 @@
+using CRM.AzureBlobStorage;
+using CRM.AzureBlobStorage.Interface;
 using CRM.Components;
 using CRM.Components.Account;
 using CRM.Data;
@@ -38,7 +40,7 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 builder.Services.AddRadzenComponents();
-
+builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
 
 var app = builder.Build();

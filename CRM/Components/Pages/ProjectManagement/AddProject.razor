@@ -1,4 +1,5 @@
-﻿@using Microsoft.AspNetCore.Authorization
+﻿@using CRM.AzureBlobStorage.Interface
+@using Microsoft.AspNetCore.Authorization
 @using CRM.Data
 @page "/addproject"
 @page "/editproject/{ProjectId:guid}"
@@ -8,6 +9,8 @@
 @inject ApplicationDbContext dbContext
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+@inject IBlobStorageService BlobStorageService
 
 <h3>@(ProjectId == null ? "Add Project" : "Edit Project")</h3>
 
@@ -53,6 +56,18 @@
                     <ValidationMessage For="@(() => Project.CustomerId)" />
                 </div>
             </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Project.Priority" class="form-select" id="priority">
+                        @foreach (var priority in Enum.GetValues(typeof(ProjectPriority)))
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </InputSelect>
+                    <label for="priority" class="form-label">Priority</label>
+                    <ValidationMessage For="@(() => Project.Priority)" />
+                </div>
+            </div>
         </div>
         <div class="row mt-3">
             <div class="col">
@@ -63,15 +78,59 @@
             </div>
         </div>
     </div>
+
+    
+    <div class="row mt-3">
+        <div class="col-12">
+            <h5>Attachments</h5>
+            <InputFile OnChange="OnFileChange" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png" />
+        </div>
+        @if (existingAttachments.Any())
+        {
+            <div class="col-12 mt-3">
+                <h6>Existing Attachments</h6>
+                <ul class="list-group">
+                    @foreach (var attachment in existingAttachments)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @attachment.FileName
+                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveExistingAttachment(attachment)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+        @if (loadedFiles.Any())
+        {
+            <div class="col-12 mt-3">
+                <h6>New Attachments</h6>
+                <ul class="list-group">
+                    @foreach (var file in loadedFiles)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            @file.Name
+                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveFile(file)">
+                                Remove
+                            </button>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
 </EditForm>
 
 @code {
     [Parameter]
     public Guid? ProjectId { get; set; }
-
     private Project Project { get; set; } = new();
     private List<Customer> Customers { get; set; } = new();
     private bool Message = false;
+    private List<IBrowserFile> loadedFiles = new();
+    private long maxFileSize = 1024 * 1024 * 10; // 10MB
+    private List<ProjectAttachment> existingAttachments = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -80,10 +139,12 @@
         if (ProjectId.HasValue)
         {
             var existingProject = await dbContext.Projects
+                .Include(p => p.Attachments)
                 .FirstOrDefaultAsync(p => p.ProjectId == ProjectId);
             if (existingProject != null)
             {
                 Project = existingProject;
+                existingAttachments = existingProject.Attachments.ToList();
             }
         }
     }
@@ -100,17 +161,90 @@
         }
 
         await dbContext.SaveChangesAsync();
+
+        // Upload files after the project is saved
+        await UploadFiles(Project.ProjectId);
+        
         Message = true;
 
         if (!ProjectId.HasValue)
         {
             Project = new();
+            loadedFiles.Clear();
         }
         StateHasChanged();
+    }
+
+    private async Task OnFileChange(InputFileChangeEventArgs e)
+    {
+        loadedFiles.AddRange(e.GetMultipleFiles());
+        StateHasChanged();
+    }
+
+    private void RemoveFile(IBrowserFile file)
+    {
+        loadedFiles.RemoveAll(f => f.Name == file.Name);
+        StateHasChanged();
+    }
+
+    private async Task UploadFiles(Guid projectId)
+    {
+        foreach (var file in loadedFiles)
+        {
+            try
+            {
+                using var stream = file.OpenReadStream(maxFileSize);
+                var blobUrl = await BlobStorageService.UploadFileToBlobAsync(
+                    $"{projectId}-{file.Name}",
+                    file.ContentType,
+                    stream
+               );
+
+                var attachment = new ProjectAttachment
+                {
+                    FileName = file.Name,
+                    BlobUrl = blobUrl,
+                    ContentType = file.ContentType,
+                    UploadedAt = DateTime.UtcNow,
+                    ProjectId = projectId
+                };
+
+                await dbContext.ProjectAttachments.AddAsync(attachment);
+            }
+            catch (Exception ex)
+            {
+                
+                Console.WriteLine($"Error uploading file {file.Name}: {ex.Message}");
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+        loadedFiles.Clear();
     }
 
     private void NavigateToHome()
     {
         navManager.NavigateTo("/ViewProjects");
+    }
+
+    private async Task RemoveExistingAttachment(ProjectAttachment attachment)
+    {
+        try
+        {
+            // Remove from blob storage
+            await BlobStorageService.DeleteFileToBlobAsync($"{attachment.ProjectId}-{attachment.FileName}");
+            
+            // Remove from database
+            dbContext.ProjectAttachments.Remove(attachment);
+            await dbContext.SaveChangesAsync();
+            
+            // Remove from local list
+            existingAttachments.Remove(attachment);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error removing attachment {attachment.FileName}: {ex.Message}");
+        }
     }
 }

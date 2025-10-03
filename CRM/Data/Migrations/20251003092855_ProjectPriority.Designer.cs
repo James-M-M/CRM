@@ -4,6 +4,7 @@ using CRM.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRM.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251003092855_ProjectPriority")]
+    partial class ProjectPriority
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -149,37 +152,6 @@ namespace CRM.Migrations
                     b.HasIndex("CustomerId");
 
                     b.ToTable("Projects");
-                });
-
-            modelBuilder.Entity("CRM.Data.ProjectAttachment", b =>
-                {
-                    b.Property<Guid>("AttachmentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("BlobUrl")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FileName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UploadedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("AttachmentId");
-
-                    b.HasIndex("ProjectId");
-
-                    b.ToTable("ProjectAttachments");
                 });
 
             modelBuilder.Entity("CRM.Data.Staff", b =>
@@ -385,17 +357,6 @@ namespace CRM.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("CRM.Data.ProjectAttachment", b =>
-                {
-                    b.HasOne("CRM.Data.Project", "Project")
-                        .WithMany("Attachments")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-                });
-
             modelBuilder.Entity("CRM.Data.Staff", b =>
                 {
                     b.HasOne("CRM.Data.ApplicationUser", "User")
@@ -476,11 +437,6 @@ namespace CRM.Migrations
             modelBuilder.Entity("CRM.Data.Customer", b =>
                 {
                     b.Navigation("Projects");
-                });
-
-            modelBuilder.Entity("CRM.Data.Project", b =>
-                {
-                    b.Navigation("Attachments");
                 });
 #pragma warning restore 612, 618
         }

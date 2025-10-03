@@ -29,6 +29,31 @@
                     }
                 </ul>
             </div>
+            <div class="mb-3">
+                <strong>Project Priority:</strong>
+                <p>@project.Priority</p>
+            </div>
+            @if (project.Attachments?.Any() == true)
+            {
+                <div class="mb-3">
+                    <strong>Attachments:</strong>
+                    <div class="row">
+                        @foreach (var attachment in project.Attachments)
+                        {
+                            <div class="col-md-4 mb-3">
+                                @if (attachment.ContentType.StartsWith("image/"))
+                                {
+                                    <img src="@attachment.BlobUrl" alt="@attachment.FileName" class="img-fluid rounded border" />
+                                }
+                                else
+                                {
+                                    <a href="@attachment.BlobUrl" target="_blank">@attachment.FileName</a>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            }
             <button class="btn btn-primary me-2" @onclick="@(() => navManager.NavigateTo($"/editproject/{ProjectId}"))">Edit Project</button>
             <button class="btn btn-secondary" @onclick="GoBack">Back to Projects</button>
         </div>
@@ -46,6 +71,7 @@
         project = await dbContext.Projects
             .Include(p => p.Customer)
             .Include(p => p.AssignedStaff)
+            .Include(p => p.Attachments)
             .FirstOrDefaultAsync(p => p.ProjectId == ProjectId);
     }
 

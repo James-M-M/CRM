@@ -8,6 +8,7 @@ namespace CRM.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<Staff> Staff { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<ProjectAttachment> ProjectAttachments { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
