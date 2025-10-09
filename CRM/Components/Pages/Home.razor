@@ -15,6 +15,39 @@
 
 
 
+
+<RadzenDataGrid TItem="Project" Data="@projects" AllowFiltering="true"  AllowSorting="true" PageSize="5" AllowPaging="true" LogicalFilterOperator="LogicalFilterOperator.Or" ShowPagingSummary="true" ColumnWidth="200px" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@selectedProject">
+
+    <Columns>
+        
+        <RadzenDataGridColumn Property="@nameof(Project.AssignedStaff)" FilterProperty="AssignedStaff.StaffName" Title="Assigned Staff" Width="250px" Type="typeof(ICollection<Staff>)" Sortable="true">
+            <Template Context="project">    
+                @string.Join(", ", project.AssignedStaff.Select(s => s.StaffName))
+            </Template>
+        </RadzenDataGridColumn>
+        <RadzenDataGridColumn Property="@nameof(Project.Name)" Title="Project Name" Width="200px" />
+        <RadzenDataGridColumn Property="@nameof(Project.Details)" Title="Details" Width="300px" />
+        <RadzenDataGridColumn Property="@nameof(Project.Priority)" Title="Priority" Width="120px" />
+
+        <RadzenDataGridColumn Title="Status" Width="120px">
+            <Template Context="project">
+                @(project.isCompleted ? "Completed" : "In Progress")
+            </Template>
+        </RadzenDataGridColumn>
+
+        <RadzenDataGridColumn Property="@nameof(Project.CreatedAt)" Title="Created" FormatString="{0:d}" Width="140px" />
+        <RadzenDataGridColumn Property="@nameof(Project.LastUpdated)" Title="Last Updated" FormatString="{0:d}" Width="140px" />
+    </Columns>
+</RadzenDataGrid>
+
+
+
+
+
+
+
+
+@* 
 <select @onchange="OnStaffSelected" class="form-select">
     <option value="">-- Select Staff --</option>
     @foreach (var staff in staffList)
@@ -47,49 +80,58 @@ else
                 <th>Created</th>
                 <th>Last Updated</th>
             </tr>
+            
         </thead>
         <tbody>
-            @foreach (var project in projects)@*goes through the projects list created from project class*@
+            @foreach (var project in projects)@*goes through the projects list created from project class
             {
                 <tr>
                     <td>@project.Name</td>
                     <td>@project.Details</td>
                     <td>@project.Priority</td>
-                    <td>@(project.isCompleted ? "Completed" : "In Progress")</td>@*? is true : is False*@
+                    <td>@(project.isCompleted ? "Completed" : "In Progress")</td>? is true : is False
                     <td>@project.CreatedAt.ToShortDateString()</td>
-                    <td>@project.LastUpdated?.ToShortDateString()</td> @*shortens the datetime to just date*@
+                    <td>@project.LastUpdated?.ToShortDateString()</td> shortens the datetime to just date
                 </tr>
             }
         </tbody>
-    </table>
-}
+    </table> 
+}*@
 
 @code {
     private List<Staff> staffList = new();
-    private List<Project> projects;
+    // private List<Project> projects;
+    private IQueryable<Project> projects;
+    private IList<Project> selectedProject;
+
+
+
     private Guid selectedStaffId = Guid.Empty;
-    
+
     //loads data
     protected override async Task OnInitializedAsync()
     {
         staffList = await dbContext.Staff.OrderBy(s => s.StaffName).ToListAsync();
+        projects = dbContext.Projects.Include(p => p.AssignedStaff)
+            .AsQueryable(); 
+       
+
     }
     //selects the projects for only the staff selected
-    private async Task OnStaffSelected(ChangeEventArgs e)
-    {
-        var selectedValue = e.Value?.ToString();
-        if (Guid.TryParse(selectedValue, out var staffId))
-        {
-            selectedStaffId = staffId;
-            projects = await dbContext.Projects
-                .Include(p => p.AssignedStaff)//loads assigned staff list
-                .Where(p => p.AssignedStaff.Any(s => s.StaffId == selectedStaffId))//compares staff id to the ids on projects
-                .ToListAsync();//sets the data to a list then shows the details
-        }
-        else
-        {
-            selectedStaffId = Guid.Empty;
-            projects = null;
-        }
+    // private async Task OnStaffSelected(ChangeEventArgs e)
+    // {
+    //     var selectedValue = e.Value?.ToString();
+    //     if (Guid.TryParse(selectedValue, out var staffId))
+    //     {
+    //         selectedStaffId = staffId;
+    //         projects = await dbContext.Projects
+    //             .Include(p => p.AssignedStaff)//loads assigned staff list
+    //             .Where(p => p.AssignedStaff.Any(s => s.StaffId == selectedStaffId))//compares staff id to the ids on projects
+    //             .ToListAsync();//sets the data to a list then shows the details
+    //     }
+    //     else
+    //     {
+    //         selectedStaffId = Guid.Empty;
+    //         projects = null;
+    //     }
     }
-}

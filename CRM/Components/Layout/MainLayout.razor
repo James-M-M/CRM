@@ -1,9 +1,9 @@
-﻿@inherits LayoutComponentBase
+﻿@using Microsoft.AspNetCore.Authentication
+@inherits LayoutComponentBase
+@inject NavigationManager NavigationManager
 
 
-@code {
-    private bool sidebar1Expanded = true;
-}
+
 
 <RadzenLayout>
     <RadzenHeader>
@@ -11,16 +11,35 @@
     </RadzenHeader>
 
     <RadzenSidebar @bind-Expanded="@sidebar1Expanded">
-        <RadzenPanelMenu>
-            <RadzenPanelMenuItem Text="Home" Icon="home" Path="/" />
-            <RadzenPanelMenuItem Text="Users" Icon="account_box" Path="/Account/Login" />
-            <RadzenPanelMenuItem Text="Add Customers" Icon="account_box" Path="/CustomerInfo"/>
-            <RadzenPanelMenuItem Text="View Customers" Icon="account_box" Path="/showcustomers" />
-            <RadzenPanelMenuItem Text="Add Staff" Icon="account_box" Path="/Addstaff" />
-            <RadzenPanelMenuItem Text="View Staff" Icon="account_box" Path="/viewstaff" />
-            <RadzenPanelMenuItem Text="Add projects" Icon="feedback" Path="/addproject"/>
-            <RadzenPanelMenuItem Text="View projects" Icon="feedback" Path="/ViewProjects" />
-        </RadzenPanelMenu>
+        <AuthorizeView>
+            <Authorized>
+                <RadzenPanelMenu>
+                    <RadzenPanelMenuItem Text="Home" Icon="home" Path="/" />
+                    <RadzenPanelMenuItem Text="Add Customers" Icon="account_box" Path="/CustomerInfo" />
+                    <RadzenPanelMenuItem Text="View Customers" Icon="account_box" Path="/showcustomers" />
+                    <RadzenPanelMenuItem Text="Add Staff" Icon="account_box" Path="/Addstaff" />
+                    <RadzenPanelMenuItem Text="View Staff" Icon="account_box" Path="/viewstaff" />
+                    <RadzenPanelMenuItem Text="Add Projects" Icon="feedback" Path="/addproject" />
+                    <RadzenPanelMenuItem Text="View Projects" Icon="feedback" Path="/ViewProjects" />
+                    <RadzenPanelMenuItem Text="Account" Icon="account_circle" Path="/Account/Manage" />
+                </RadzenPanelMenu>
+                <div class="rz-p-3">
+                    <form action="/Account/Logout" method="post">
+                        <AntiforgeryToken />
+                        <input type="hidden" name="returnUrl" value="@currentUrl" />
+                        <button type="submit" class="rz-button rz-button-danger w-100">
+                            <i class="material-icons">logout</i>
+                        </button>
+                    </form>
+                </div>
+            </Authorized>
+            <NotAuthorized>
+                <RadzenPanelMenu>
+                    <RadzenPanelMenuItem Text="Login" Icon="login" Path="/Account/Login" />
+                    <RadzenPanelMenuItem Text="Register" Icon="person_add" Path="/Account/Register" />
+                </RadzenPanelMenu>
+            </NotAuthorized>
+        </AuthorizeView>
     </RadzenSidebar>
 
     <RadzenBody>
@@ -31,3 +50,14 @@
 </RadzenLayout>
 
 <RadzenComponents @rendermode="InteractiveServer" />
+@code {
+    private bool sidebar1Expanded = true;
+    private string? currentUrl;
+
+    private async Task OnInitialisedAsync()
+    {
+        await base.OnInitializedAsync();
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+    }
+
+}

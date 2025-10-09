@@ -1,4 +1,6 @@
-﻿namespace CRM.Data
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CRM.Data
 {
     public enum ProjectPriority
     {
@@ -20,5 +22,6 @@
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool isCompleted { get; set; } = false;
         public DateTime? LastUpdated { get; set; }
+       
     }
 }
