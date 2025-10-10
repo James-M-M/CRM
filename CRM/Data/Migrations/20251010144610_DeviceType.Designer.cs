@@ -4,6 +4,7 @@ using CRM.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRM.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251010144610_DeviceType")]
+    partial class DeviceType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -147,14 +150,9 @@ namespace CRM.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<Guid?>("StaffId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.HasKey("Id");
 
                     b.HasIndex("DeviceTypeId");
-
-                    b.HasIndex("StaffId");
 
                     b.ToTable("Devices");
                 });
@@ -454,13 +452,7 @@ namespace CRM.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CRM.Data.Staff", "Staff")
-                        .WithMany("Devices")
-                        .HasForeignKey("StaffId");
-
                     b.Navigation("DeviceType");
-
-                    b.Navigation("Staff");
                 });
 
             modelBuilder.Entity("CRM.Data.Project", b =>
@@ -570,11 +562,6 @@ namespace CRM.Migrations
             modelBuilder.Entity("CRM.Data.Project", b =>
                 {
                     b.Navigation("Attachments");
-                });
-
-            modelBuilder.Entity("CRM.Data.Staff", b =>
-                {
-                    b.Navigation("Devices");
                 });
 #pragma warning restore 612, 618
         }

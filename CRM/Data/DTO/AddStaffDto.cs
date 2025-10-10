@@ -8,5 +8,6 @@
         public string Address { get; set; } = string.Empty;
         public string PhoneNum { get; set; } = string.Empty;
         public string Email { get; set; } = string.Empty;
+        public double Hours_Logged { get; set; }
     }
 }

@@ -9,6 +9,7 @@ namespace CRM.Data
         public DbSet<Staff> Staff { get; set; }
         public DbSet<Project> Projects { get; set; }
         public DbSet<ProjectAttachment> ProjectAttachments { get; set; }
+        public DbSet<Device> Devices { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -29,6 +30,7 @@ namespace CRM.Data
                 .OnDelete(DeleteBehavior.Cascade);
             builder.Entity<Project>()
                 .HasMany(p => p.AssignedStaff);
+           // builder.Entity<Staff>().HasMany(s => s.Devices);
         }
     }
 }

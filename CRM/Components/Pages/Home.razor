@@ -13,10 +13,20 @@
 <h1>Hello welcome to the CRM system!</h1>
 <p>Please use the sidebar to navigate the system</p>
 
+<p>Amount of Projects in progress: @Project_InProgress</p>
 
 
-
-<RadzenDataGrid TItem="Project" Data="@projects" AllowFiltering="true"  AllowSorting="true" PageSize="5" AllowPaging="true" LogicalFilterOperator="LogicalFilterOperator.Or" ShowPagingSummary="true" ColumnWidth="200px" SelectionMode="DataGridSelectionMode.Single" @bind-Value="@selectedProject">
+<RadzenDataGrid TItem="Project" 
+    Data="@projects" 
+    AllowFiltering="true"  
+    AllowSorting="true" 
+    PageSize="5" 
+    AllowPaging="true" 
+    LogicalFilterOperator="LogicalFilterOperator.Or" 
+    ShowPagingSummary="true" 
+    ColumnWidth="200px" 
+    SelectionMode="DataGridSelectionMode.Single" 
+    @bind-Value="@selectedProject">
 
     <Columns>
         
@@ -36,17 +46,126 @@
         </RadzenDataGridColumn>
 
         <RadzenDataGridColumn Property="@nameof(Project.CreatedAt)" Title="Created" FormatString="{0:d}" Width="140px" />
-        <RadzenDataGridColumn Property="@nameof(Project.LastUpdated)" Title="Last Updated" FormatString="{0:d}" Width="140px" />
+        <RadzenDataGridColumn Property="@nameof(Project.LastUpdated)" Title="Last Updated" FormatString="{0:d}" Width="140px" />    
+        <RadzenDataGridColumn Property="@nameof(Project.HoursSpentOnProject)" Title="Hours Spent On Project"  Width="140px" />
     </Columns>
 </RadzenDataGrid>
 
+<RadzenStack class="rz-p-0 rz-p-md-6 rz-p-lg-12" AlignItems="AlignItems.Center">
+    <RadzenCard Variant="Variant.Outlined" Style="width: 100%;">
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0.5rem" Wrap="FlexWrap.Wrap">
+            <RadzenCheckBox @bind-Value="@showDataLabels" Name="dataLabels"></RadzenCheckBox>
+                <RadzenLabel Text="Show Data Labels" Component="dataLabels" />
+        </RadzenStack>
+    </RadzenCard>
+</RadzenStack>
+
+
+<div style="display: flex; gap: 20px; align-items: flex-start;">
+    <div style="flex: 1; max-width: 50%;">
+        <h4>Hours Logged Per Staff</h4>
+        <RadzenChart style="width: 100%; height: 300px;" SeriesClick="OnSeriesClick">
+            <RadzenColumnSeries Data="@staffList"
+                    CategoryProperty="StaffName"
+                    ValueProperty="Hours_Logged"
+                    Title="Hours Logged">
+                <RadzenSeriesDataLabels Visible="@showDataLabels" />
+            </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="5" Width="30" />
+            <RadzenCategoryAxis Padding="20">
+                <RadzenAxisTitle Text="Staff Name" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis>
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Hours Logged" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    </div>
+
+    <div style="flex: 1; max-width: 50%;">
+        <RadzenChart style="width: 100%; height: 300px;" SeriesClick="OnSeriesClick">
+            <RadzenPieSeries Data="@pieData" CategoryProperty="CompletedOrNot" ValueProperty="Count" >
+                <RadzenSeriesDataLabels Visible="@showDataLabels" />
+            <RadzenLegend Position="LegendPosition.Right" />
+            </RadzenPieSeries>
+            
+        </RadzenChart>
+    </div>
+</div>
 
 
 
 
 
 
+@code {
+    private List<Staff> staffList = new();
+    private List<Project> projects2 = new();
+    private IQueryable<Project> projects;
+    private IList<Project> selectedProject;
+    private Guid selectedStaffId = Guid.Empty;
+    bool showDataLabels = false;
+    public int Project_InProgress => projects2.Count(p => !p.isCompleted);
 
+
+
+    private List<ProjectsCompletedPieChart> pieData = new();
+
+    class ProjectsCompletedPieChart
+    {
+        public string CompletedOrNot { get; set; }
+        public int Count { get; set; }
+    }
+
+
+    void OnSeriesClick(SeriesClickEventArgs args)
+    {
+        Console.WriteLine($"Clicked on category: {args.Category} with value: {args.Value}");
+    }
+
+
+
+
+    //loads data
+    protected override async Task OnInitializedAsync()
+    {
+        staffList = await dbContext.Staff.OrderBy(s => s.StaffName).ToListAsync();
+        projects = dbContext.Projects.Include(p => p.AssignedStaff)
+            .AsQueryable(); 
+        projects2 = await dbContext.Projects.ToListAsync();
+
+        int completedCount = projects2.Count(p => p.isCompleted);
+        int inProgressCount = projects2.Count(p => !p.isCompleted);
+
+
+        pieData = new List<ProjectsCompletedPieChart>
+        {
+            new ProjectsCompletedPieChart { CompletedOrNot = "Completed", Count = completedCount },
+            new ProjectsCompletedPieChart { CompletedOrNot = "In Progress", Count = inProgressCount }
+        };
+		
+    }
+
+
+    //selects the projects for only the staff selected
+    // private async Task OnStaffSelected(ChangeEventArgs e)
+    // {
+    //     var selectedValue = e.Value?.ToString();
+    //     if (Guid.TryParse(selectedValue, out var staffId))
+    //     {
+    //         selectedStaffId = staffId;
+    //         projects = await dbContext.Projects
+    //             .Include(p => p.AssignedStaff)//loads assigned staff list
+    //             .Where(p => p.AssignedStaff.Any(s => s.StaffId == selectedStaffId))//compares staff id to the ids on projects
+    //             .ToListAsync();//sets the data to a list then shows the details
+    //     }
+    //     else
+    //     {
+    //         selectedStaffId = Guid.Empty;
+    //         projects = null;
+    //     }
+   
+    }
 @* 
 <select @onchange="OnStaffSelected" class="form-select">
     <option value="">-- Select Staff --</option>
@@ -97,41 +216,3 @@ else
         </tbody>
     </table> 
 }*@
-
-@code {
-    private List<Staff> staffList = new();
-    // private List<Project> projects;
-    private IQueryable<Project> projects;
-    private IList<Project> selectedProject;
-
-
-
-    private Guid selectedStaffId = Guid.Empty;
-
-    //loads data
-    protected override async Task OnInitializedAsync()
-    {
-        staffList = await dbContext.Staff.OrderBy(s => s.StaffName).ToListAsync();
-        projects = dbContext.Projects.Include(p => p.AssignedStaff)
-            .AsQueryable(); 
-       
-
-    }
-    //selects the projects for only the staff selected
-    // private async Task OnStaffSelected(ChangeEventArgs e)
-    // {
-    //     var selectedValue = e.Value?.ToString();
-    //     if (Guid.TryParse(selectedValue, out var staffId))
-    //     {
-    //         selectedStaffId = staffId;
-    //         projects = await dbContext.Projects
-    //             .Include(p => p.AssignedStaff)//loads assigned staff list
-    //             .Where(p => p.AssignedStaff.Any(s => s.StaffId == selectedStaffId))//compares staff id to the ids on projects
-    //             .ToListAsync();//sets the data to a list then shows the details
-    //     }
-    //     else
-    //     {
-    //         selectedStaffId = Guid.Empty;
-    //         projects = null;
-    //     }
-    }

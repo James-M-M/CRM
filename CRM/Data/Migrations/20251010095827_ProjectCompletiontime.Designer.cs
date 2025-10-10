@@ -4,6 +4,7 @@ using CRM.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CRM.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251010095827_ProjectCompletiontime")]
+    partial class ProjectCompletiontime
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -122,60 +125,6 @@ namespace CRM.Migrations
                     b.HasIndex("UserID");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("CRM.Data.Device", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("AssignedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("DeviceName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("DeviceTypeId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("ReturnDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SerialNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid?>("StaffId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DeviceTypeId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("Devices");
-                });
-
-            modelBuilder.Entity("CRM.Data.DeviceType", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("DeviceType");
                 });
 
             modelBuilder.Entity("CRM.Data.Project", b =>
@@ -446,23 +395,6 @@ namespace CRM.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("CRM.Data.Device", b =>
-                {
-                    b.HasOne("CRM.Data.DeviceType", "DeviceType")
-                        .WithMany()
-                        .HasForeignKey("DeviceTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CRM.Data.Staff", "Staff")
-                        .WithMany("Devices")
-                        .HasForeignKey("StaffId");
-
-                    b.Navigation("DeviceType");
-
-                    b.Navigation("Staff");
-                });
-
             modelBuilder.Entity("CRM.Data.Project", b =>
                 {
                     b.HasOne("CRM.Data.Customer", "Customer")
@@ -570,11 +502,6 @@ namespace CRM.Migrations
             modelBuilder.Entity("CRM.Data.Project", b =>
                 {
                     b.Navigation("Attachments");
-                });
-
-            modelBuilder.Entity("CRM.Data.Staff", b =>
-                {
-                    b.Navigation("Devices");
                 });
 #pragma warning restore 612, 618
         }

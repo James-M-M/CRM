@@ -1,0 +1,25 @@
+﻿@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+<h3>Device_Registration</h3>
+
+
+
+
+
+@code {
+	private List<Device> Devices = new();
+	private async Task OnInitialisedAsync()
+	{
+		await base.OnInitializedAsync();
+
+		Devices = dbContext.Devices.ToList();
+	}
+}

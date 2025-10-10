@@ -22,6 +22,9 @@ namespace CRM.Data
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
         public bool isCompleted { get; set; } = false;
         public DateTime? LastUpdated { get; set; }
-       
+        public double HoursSpentOnProject { get; set; }
+        public DateTime? ProjectCompleteDate { get; set; }
+
+
     }
 }

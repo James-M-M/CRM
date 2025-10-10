@@ -38,6 +38,10 @@
                 </ul>
             </div>
             <div class="mb-3">
+                <strong>Hours spent on project:</strong>
+                <p>@project.HoursSpentOnProject</p>
+            </div>
+            <div class="mb-3">
                 <strong>Project Priority:</strong>
                 <p>@project.Priority</p>
             </div>
@@ -49,6 +53,12 @@
                         var badgeText = project.isCompleted ? "Completed" : "In Progress";
                     }
                     <span class="badge @badgeClass">@badgeText</span>
+                </div>
+            }
+            @if (project.ProjectCompleteDate != null)
+            {
+                <div class="mt-2 text-muted">
+                    Completed on: @project.ProjectCompleteDate?.ToLocalTime().ToString("f")
                 </div>
             }
 

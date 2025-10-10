@@ -1,4 +1,5 @@
 ﻿@using CRM.AzureBlobStorage.Interface
+@using CRM.Data.DTO
 @using Microsoft.AspNetCore.Authorization
 @using CRM.Data
 @page "/addproject"
@@ -35,6 +36,18 @@
                     <ValidationMessage For="@(() => Project.Name)" />
                 </div>
             </div>
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="Project.Priority" class="form-select" id="priority">
+                        @foreach (var priority in Enum.GetValues(typeof(ProjectPriority)))
+                        {
+                            <option value="@priority">@priority</option>
+                        }
+                    </InputSelect>
+                    <label for="priority" class="form-label">Priority</label>
+                    <ValidationMessage For="@(() => Project.Priority)" />
+                </div>
+            </div>
             <div class="col-12">
                 <div class="form-floating mb-3">
                     <InputTextArea @bind-Value="Project.Details" class="form-control" id="details"
@@ -56,27 +69,24 @@
                     <ValidationMessage For="@(() => Project.CustomerId)" />
                 </div>
             </div>
+            
             <div class="col-md-6">
                 <div class="form-floating mb-3">
-                    <InputSelect @bind-Value="Project.Priority" class="form-select" id="priority">
-                        @foreach (var priority in Enum.GetValues(typeof(ProjectPriority)))
-                        {
-                            <option value="@priority">@priority</option>
-                        }
-                    </InputSelect>
-                    <label for="priority" class="form-label">Priority</label>
-                    <ValidationMessage For="@(() => Project.Priority)" />
+                    <InputNumber @bind-Value="Project.HoursSpentOnProject" class="form-control" id="ProjectHoursLogged" placeholder="Project Hours" />
+                    <label for="ProjectHoursLogged">Project Hours Logged</label>
+                    <ValidationMessage For="@(() => Project.HoursSpentOnProject)" />
                 </div>
             </div>
             @if (ProjectId.HasValue)
             {
                 <div class="col-md-6">
                     <div class="form-check mb-3">
-                        <InputCheckbox @bind-Value="Project.isCompleted" class="form-check-input" id="isCompleted" />
+                        <InputCheckbox class="form-check-input" id="isCompleted" @bind-Value="Project.isCompleted" />
                         <label class="form-check-label" for="isCompleted">Project Completed</label>
                     </div>
                 </div>
             }
+
 
         </div>
         <div class="row mt-3">
@@ -141,6 +151,7 @@
     private List<IBrowserFile> loadedFiles = new();
     private long maxFileSize = 1024 * 1024 * 10; // 10MB
     private List<ProjectAttachment> existingAttachments = new();
+    private AddStaffDto Staff { get; set; } = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -159,13 +170,27 @@
         }
     }
 
+
+    
+
+
+
+
     private async Task OnSubmit()
     {
+        if (Project.isCompleted && Project.ProjectCompleteDate == null)
+        {
+            Project.ProjectCompleteDate = DateTime.UtcNow;
+        }
+        else if (!Project.isCompleted)
+        {
+            Project.ProjectCompleteDate = null;
+        }
+
         if (ProjectId.HasValue)
         {
             Project.LastUpdated = DateTime.UtcNow;
             dbContext.Projects.Update(Project);
-
         }
         else
         {
@@ -176,7 +201,7 @@
 
         // Upload files after the project is saved
         await UploadFiles(Project.ProjectId);
-        
+
         Message = true;
 
         if (!ProjectId.HasValue)
@@ -186,6 +211,7 @@
         }
         StateHasChanged();
     }
+
 
     private async Task OnFileChange(InputFileChangeEventArgs e)
     {
