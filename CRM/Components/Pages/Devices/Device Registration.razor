@@ -1,4 +1,5 @@
-﻿@using CRM.Data.DTO
+﻿@page "/devices/registration"
+@using CRM.Data.DTO
 @using Microsoft.AspNetCore.Authorization
 @using CRM.Data
 @using System.ComponentModel.DataAnnotations
@@ -8,18 +9,90 @@
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
-<h3>Device_Registration</h3>
 
 
 
+<EditForm Model="Devices" OnValidSubmit="OnSubmit" FormName="device-registration">
+	<DataAnnotationsValidator />
+	<ValidationSummary />
+	@if (!string.IsNullOrWhiteSpace(Messages))
+	{
+		<div class="alert alert-info mt-3">@Messages</div>
+	}
 
+	<div class="container">
+		<div class="row g-3">
+			<div class="col-12 col-md-8">
+				<h3>Device Registration</h3>
+				<div class="form-floating mb-3">
+					<InputText @bind-Value="Devices.Name" class="form-control" id="name" placeholder="Device Name" />
+					<label for="name" class="form-label">Device Name</label>
+					<ValidationMessage For="@(() => Devices.Name)" />
+				</div>
+
+				<div class="form-floating mb-3">
+					<InputTextArea @bind-Value="Devices.Description"
+								   class="form-control"
+								   id="description"
+								   placeholder="Device description"
+								   style="height: 100px;" />
+					<label for="description" class="form-label">Device Description</label>
+					<ValidationMessage For="@(() => Devices.Description)" />
+				</div>
+
+				<div class="row mt-3">
+					<div class="col-auto">
+						<button class="btn btn-primary me-2" type="submit">Register device</button>
+					</div>
+					<div class="col-auto">
+						<button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</EditForm>
 
 @code {
-	private List<Device> Devices = new();
+	private DeviceType Devices { get; set; } = new();
+	private string? Messages { get; set; }
+	private bool IsSuccess { get; set; }
+
 	private async Task OnInitialisedAsync()
 	{
 		await base.OnInitializedAsync();
+	}
 
-		Devices = dbContext.Devices.ToList();
+	private async Task OnSubmit()
+	{
+		try
+		{
+			Devices.Id = Guid.NewGuid();
+			await dbContext.DeviceTypes.AddAsync(Devices);
+			var result = await dbContext.SaveChangesAsync();
+
+			if (result > 0)
+			{
+				IsSuccess = true;
+				Messages = "Device Registered Successfully.";
+				Console.WriteLine($"Device Registered: {Devices.Name}, ID: {Devices.Id}");
+				Devices = new DeviceType(); // Reset the form
+
+			}
+			else
+			{
+				IsSuccess = false;
+				Messages = "Failed to register device. Please try again.";
+			}
+		}
+		catch (Exception ex)
+		{
+			Messages = $"An error occurred: {ex.Message}";
+			IsSuccess = false;
+		}
+	}
+	private void NavigateToList()
+	{
+		navManager.NavigateTo("/");
 	}
 }

@@ -1,5 +1,8 @@
-﻿namespace CRM.Data
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CRM.Data
 {
+    [Table("DeviceType")]
     public class DeviceType
     {
         public Guid Id { get; set; }

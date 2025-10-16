@@ -1,0 +1,52 @@
+﻿@page "/devices/view"
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+<h3>View Device</h3>
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Device Name</th>
+                <th>Device ID</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var device in DeviceList)
+            {
+                <tr>
+                    <td>@device.Name</td>
+                    <td>@device.Id</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ViewDeviceDetails(device.Id)">
+                            View Details
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+
+
+@code {
+	private List<DeviceType> DeviceList = new();
+
+	protected override async Task OnInitializedAsync()
+	{
+		DeviceList = await dbContext.DeviceTypes.ToListAsync();
+	}
+    private void ViewDeviceDetails(Guid deviceID)
+    {
+        navManager.NavigateTo($"/devices/view/{deviceID}");
+	}
+}

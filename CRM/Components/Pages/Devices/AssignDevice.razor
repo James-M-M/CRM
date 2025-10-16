@@ -1,0 +1,137 @@
+﻿@page "/assigndevice"
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+@using CRM.Data
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<h3>Assign Device</h3>
+
+@if (!string.IsNullOrEmpty(Messages))
+{
+    <div class="alert alert-success" role="alert">
+        @Messages
+    </div>
+}
+
+<EditForm Model="DeviceDto" OnValidSubmit="OnSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="DeviceDto.SerialNumber" class="form-control" id="serialNumber" placeholder="Serial Number" />
+                    <label for="serialNumber">Serial Number</label>
+                    <ValidationMessage For="@(() => DeviceDto.SerialNumber)" />
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="DeviceDto.DeviceName" class="form-control" id="deviceName" placeholder="Device Name" />
+                    <label for="deviceName">Device Name</label>
+                    <ValidationMessage For="@(() => DeviceDto.DeviceName)" />
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <RadzenDropDown @bind-Value="DeviceDto.DeviceTypeId"
+                                    Data="@DeviceTypes"
+                                    TextProperty="Name"
+                                    ValueProperty="Id"
+                                    class="form-control"
+                                    Placeholder="Select Device Type" />
+                    <label for="deviceType">Device Type</label>
+                    <ValidationMessage For="@(() => DeviceDto.DeviceTypeId)" />
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <RadzenDropDown @bind-Value="DeviceDto.StaffId"
+                                    Data="@StaffList"
+                                    TextProperty="StaffName"
+                                    ValueProperty="StaffId"
+                                    class="form-control"
+                                    Placeholder="Assign to Staff" />
+                    <label for="staff">Assign to Staff</label>
+                    <ValidationMessage For="@(() => DeviceDto.StaffId)" />
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputDate @bind-Value="DeviceDto.AssignedDate" class="form-control" id="assignedDate" />
+                    <label for="assignedDate">Assigned Date</label>
+                    <ValidationMessage For="@(() => DeviceDto.AssignedDate)" />
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-floating mb-3">
+                    <InputDate @bind-Value="DeviceDto.ReturnDate" class="form-control" id="returnDate" />
+                    <label for="returnDate">Return Date</label>
+                    <ValidationMessage For="@(() => DeviceDto.ReturnDate)" />
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-3">
+            <div class="col">
+                <button class="btn btn-primary me-2" type="submit">Assign Device</button>
+                <button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private AssignDeviceDTO DeviceDto { get; set; } = new();
+    private string? Messages;
+
+    private List<DeviceType> DeviceTypes { get; set; } = new();
+    private List<Staff> StaffList { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        DeviceTypes = await dbContext.DeviceTypes.ToListAsync();
+        StaffList = await dbContext.Staff.ToListAsync();
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            var newDevice = new Device
+            {
+                Id = Guid.NewGuid(),
+                SerialNumber = DeviceDto.SerialNumber,
+                DeviceName = DeviceDto.DeviceName,
+                AssignedDate = DeviceDto.AssignedDate,
+                ReturnDate = DeviceDto.ReturnDate,
+                DeviceTypeId = DeviceDto.DeviceTypeId,
+                StaffId = DeviceDto.StaffId
+            };
+
+            dbContext.Devices.Add(newDevice);
+            await dbContext.SaveChangesAsync();
+
+            Messages = "Device assigned successfully.";
+            NavigateToList();
+        }
+        catch (Exception ex)
+        {
+            Messages = $"Error: {ex.Message}";
+        }
+    }
+
+    private void NavigateToList()
+    {
+        navManager.NavigateTo("/devices/view");
+    }
+}

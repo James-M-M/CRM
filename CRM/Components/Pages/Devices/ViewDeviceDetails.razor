@@ -1,0 +1,42 @@
+﻿@page "/devices/view/{DeviceId:guid}"
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+
+<h3>View Devices</h3>
+@if (Devices != null)
+{
+	<div class="card">
+		<div class="card-body">
+			<div class="mb-3">
+				<strong>Device ID:</strong>@Devices.Id<br />
+				<strong>Device Name:</strong>@Devices.Name<br />
+				<strong>Device Description:</strong>@Devices.Description<br />
+			</div>
+		</div>
+	</div>
+}
+
+<button class="btn btn-secondary" @onclick="GoBack">Back</button>
+@code {
+	private DeviceType? Devices;
+	[Parameter]
+	public Guid DeviceId { get; set; }
+
+	protected override async Task OnInitializedAsync()
+	{
+		Devices = await dbContext.DeviceTypes
+		.FirstOrDefaultAsync(p => p.Id == DeviceId);
+	}
+	private void GoBack()
+	{
+		navManager.NavigateTo("/devices/view");
+	}
+}
