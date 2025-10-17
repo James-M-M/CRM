@@ -15,6 +15,7 @@ namespace CRM.Data
         public string PhoneNum { get; set; }
         public string Email { get; set; }
         public double Hours_Logged { get; set; }
-        
+        public ICollection<CustomerInteractions> CustomerInteractions { get; set; } = new List<CustomerInteractions>();
+
     }
 }

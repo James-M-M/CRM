@@ -24,7 +24,7 @@ namespace CRM.Data
         public DateTime? LastUpdated { get; set; }
         public double HoursSpentOnProject { get; set; }
         public DateTime? ProjectCompleteDate { get; set; }
-
+        public ICollection<CustomerInteractions> CustomerInteractions { get; set; } = new List<CustomerInteractions>();
 
     }
 }
