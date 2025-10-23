@@ -15,201 +15,288 @@
 
 <h3>Customer Interactions</h3>
 
-<EditForm Model="model" OnValidSubmit="OnSubmit" FormName="customer-interactions">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+<div class="row">
+	 @* LEFT SIDE: FORM *@
+	<div class="col-md-8">
+		<EditForm Model="model" OnValidSubmit="OnSubmit" FormName="customer-interactions">
+			<DataAnnotationsValidator />
+			<ValidationSummary />
 
+			<div class="row">
+				<div class="col-md-6">
+					<div class="form-floating mb-3">
+						<RadzenDropDown @bind-Value="model.StaffId"
+										Data="@StaffList"
+										TextProperty="StaffName"
+										ValueProperty="StaffId"
+										class="form-control"
+										Placeholder="Choose staff member" />
+						<label for="staff">Which staff member</label>
+						<ValidationMessage For="@(() => model.StaffId)" />
+					</div>
+				</div>
 
-    <div class="col-12 col-md-8">
-        <div class="col-md-6">
-            <div class="form-floating mb-3">
-                <InputDate @bind-Value="model.InteractionDate" class="form-control" id="interactionDate" />
-                <label for="assignedDate">Interaction Date</label>
-                <ValidationMessage For="@(() => model.InteractionDate)" />
-            </div>
-        </div>
-        <div class="form-floating mb-3">
-            <InputTextArea @bind-Value="model.Comments"
-                           class="form-control"
-                           id="Comments"
-                           placeholder="Customer comment"
-                           width="150px"/>
-            <label for="Comments">Customer Comments</label>
-            <ValidationMessage For="@(() => model.Comments)" />
-        </div>
-    </div>
-    <div class="col-md-6">
-        <div class="form-floating mb-3">
-            <RadzenDropDown @bind-Value="model.StaffId"
-                            Data="@StaffList"
-                            TextProperty="StaffName"
-                            ValueProperty="StaffId"
-                            class="form-control"
-                            Placeholder="Assign to Staff" />
-            <label for="staff">Assign to Staff</label>
-            <ValidationMessage For="@(() => model.StaffId)" />
-        </div>
-    </div>
+				<div class="col-md-6">
+					<div class="form-floating mb-3">
+						<RadzenDropDown @bind-Value="model.ProjectId"
+										Data="@Projects"
+										TextProperty="Name"
+										ValueProperty="ProjectId"
+										class="form-control"
+										Placeholder="Choose the project" />
+						<label for="project">Which project</label>
+						<ValidationMessage For="@(() => model.ProjectId)" />
+					</div>
+				</div>
+			</div>
 
+			<div class="row">
+				<div class="col-md-6">
+					<div class="form-floating mb-3">
+						<InputDate @bind-Value="model.InteractionDate" class="form-control" id="interactionDate" />
+						<label for="interactionDate">Interaction Date</label>
+						<ValidationMessage For="@(() => model.InteractionDate)" />
+					</div>
+				</div>
+			</div>
 
-    <div class="row mt-3">
-        <div class="col-12">
-            <h5>Attachments</h5>
-            <InputFile OnChange="OnFileChange" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png" />
-        </div>
-    </div>
-    @if (existingAttachments.Any())
-        {
-            <div class="col-12 mt-3">
-                <h6>Existing Attachments</h6>
-                <ul class="list-group">
-                    @foreach (var attachment in existingAttachments)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @attachment.FileName
-                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveExistingAttachment(attachment)">
-                                Remove
-                            </button>
-                        </li>
-                    }
-                </ul>
-            </div>
-        }
-        @if (loadedFiles.Any())
-        {
-            <div class="col-12 mt-3">
-                <h6>New Attachments</h6>
-                <ul class="list-group">
-                    @foreach (var file in loadedFiles)
-                    {
-                        <li class="list-group-item d-flex justify-content-between align-items-center">
-                            @file.Name
-                            <button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveFile(file)">
-                                Remove
-                            </button>
-                        </li>
-                    }
-                </ul>
-            </div>
-        }
-    
+			<div class="form-floating mb-3">
+				<InputTextArea @bind-Value="model.Comments"
+							   class="form-control"
+							   id="Comments"
+							   placeholder="Customer comment"
+							   style="height: 300px;" />
+				<label for="Comments">Customer Comments</label>
+				<ValidationMessage For="@(() => model.Comments)" />
+			</div>
 
+			<div class="row mt-3">
+				<div class="col-auto">
+					<button class="btn btn-primary me-2" type="submit">Save interaction</button>
+				</div>
+				<div class="col-auto">
+					<button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+				</div>
+			</div>
 
-</EditForm>
+			<div class="row mt-3">
+				<div class="col-12">
+					<h5>Attachments</h5>
+					<InputFile OnChange="OnFileChange" multiple class="form-control" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.png" />
+				</div>
+			</div>
+
+			@if (existingAttachments.Any())
+			{
+				<div class="col-12 mt-3">
+					<h6>Existing Attachments</h6>
+					<ul class="list-group">
+						@foreach (var attachment in existingAttachments)
+						{
+							<li class="list-group-item d-flex justify-content-between align-items-center">
+								@attachment.FileName
+								<button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveExistingAttachment(attachment)">
+									Remove
+								</button>
+							</li>
+						}
+					</ul>
+				</div>
+			}
+
+			@if (loadedFiles.Any())
+			{
+				<div class="col-12 mt-3">
+					<h6>New Attachments</h6>
+					<ul class="list-group">
+						@foreach (var file in loadedFiles)
+						{
+							<li class="list-group-item d-flex justify-content-between align-items-center">
+								@file.Name
+								<button type="button" class="btn btn-danger btn-sm" @onclick="() => RemoveFile(file)">
+									Remove
+								</button>
+							</li>
+						}
+					</ul>
+				</div>
+			}
+		</EditForm>
+	</div> 
+	@* RIGHT SIDE: Project and Staff Summary *@
+	<div class="col-md-4">
+		<h5>Projects & Assigned Staff</h5>
+
+		@if (Projects.Any())
+		{
+			<table class="table table-bordered table-striped">
+				<thead>
+					<tr>
+						<th>Project</th>
+						<th>Assigned Staff</th>
+					</tr>
+				</thead>
+				<tbody>
+					@foreach (var project in Projects)
+					{
+						<tr>
+							<td>@project.Name</td>
+							<td>
+								@if (project.AssignedStaff != null && project.AssignedStaff.Any())
+								{
+									<ul class="mb-0">
+										@foreach (var staff in project.AssignedStaff)
+										{
+											<li>@staff.StaffName</li>
+										}
+									</ul>
+								}
+								else
+								{
+									<em>No staff assigned</em>
+								}
+							</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		}
+		else
+		{
+			<p>No projects found.</p>
+		}
+	</div> 
+</div>
+
 
 
 
 
 
 @code {
-    private CRM.Data.CustomerInteractions model { get; set; } = new();
-    private bool IsSuccess { get; set; }
-    private string? Messages { get; set; }
-    private long maxFileSize = 1024 * 1024 * 10; // 10MB
-    private List<ProjectAttachment> existingAttachments = new();
-    private List<IBrowserFile> loadedFiles = new();
-    private List<Staff> StaffList { get; set; } = new();
+	private CRM.Data.CustomerInteractions model { get; set; } = new();
+	private bool IsSuccess { get; set; }
+	private string? Messages { get; set; }
+	private long maxFileSize = 1024 * 1024 * 10; // 10MB
+	private List<ProjectAttachment> existingAttachments = new();
+	private List<IBrowserFile> loadedFiles = new();
+	private List<Staff> StaffList { get; set; } = new();
+	private List<Project> Projects { get; set; } = new();
+	private bool issuccess;
+	private string messages;
 
+	protected override async Task OnInitializedAsync()
+	{
+		StaffList = await dbContext.Staff.ToListAsync();
+		Projects = await dbContext.Projects.ToListAsync();
+		if (model.Id != Guid.Empty)
+		{
+			existingAttachments = await dbContext.ProjectAttachments
+			.Where(a => a.ProjectId == model.Id)
+			.ToListAsync();
+		}
+	}
 
-    private async Task OnInitialisedAsync()
-    {
-        await base.OnInitializedAsync();
-    }
-    private async Task OnSubmit()
-    {
-        // try
-        // {
-        // 	Devices.Id = Guid.NewGuid();
-        // 	await dbContext.DeviceTypes.AddAsync(Devices);
-        // 	var result = await dbContext.SaveChangesAsync();
+	private async Task OnSubmit()
+	{
+		try
+		{
+			model.Id = Guid.NewGuid();
 
-        // 	if (result > 0)
-        // 	{
-        // 		IsSuccess = true;
-        // 		Messages = "Device Registered Successfully.";
-        // 		Console.WriteLine($"Device Registered: {Devices.Name}, ID: {Devices.Id}");
-        // 		Devices = new DeviceType(); // Reset the form
+			await dbContext.CustomerInteractions.AddAsync(model);
+			var result = await dbContext.SaveChangesAsync();
 
-        // 	}
-        // 	else
-        // 	{
-        // 		IsSuccess = false;
-        // 		Messages = "Failed to register device. Please try again.";
-        // 	}
-        // }
-        // catch (Exception ex)
-        // {
-        // 	Messages = $"An error occurred: {ex.Message}";
-        // 	IsSuccess = false;
-        // }
-        await UploadFiles(model.Id);
+			if (result > 0)
+			{
+				issuccess = true;
+				messages = "Interaction registered successfully.";
+				Console.WriteLine($"Interaction registered: {model.Id}, Staff: {model.StaffId}");
 
-    }
-    private async Task OnFileChange(InputFileChangeEventArgs e)
-    {
-        loadedFiles.AddRange(e.GetMultipleFiles());
-        StateHasChanged();
-    }
+				model = new CRM.Data.CustomerInteractions(); // Reset the form
+			}
+			else
+			{
+				issuccess = false;
+				messages = "Failed to register interaction. Please try again.";
+			}
+		}
+		catch (Exception ex)
+		{
+			messages = $"An error occurred: {ex.Message}";
+			issuccess = false;
+		}
+		await UploadFiles(model.Id);
 
-    private void RemoveFile(IBrowserFile file)
-    {
-        loadedFiles.RemoveAll(f => f.Name == file.Name);
-        StateHasChanged();
-    }
+	}
+	private async Task OnFileChange(InputFileChangeEventArgs e)
+	{
+		loadedFiles.AddRange(e.GetMultipleFiles());
+		StateHasChanged();
+	}
 
-    private async Task UploadFiles(Guid projectId)
-    {
-        foreach (var file in loadedFiles)
-        {
-            try
-            {
-                using var stream = file.OpenReadStream(maxFileSize);
-                var blobUrl = await BlobStorageService.UploadFileToBlobAsync(
-                    $"{projectId}-{file.Name}",
-                    file.ContentType,
-                    stream
-               );
+	private void RemoveFile(IBrowserFile file)
+	{
+		loadedFiles.RemoveAll(f => f.Name == file.Name);
+		StateHasChanged();
+	}
 
-                var attachment = new ProjectAttachment
-                {
-                    FileName = file.Name,
-                    BlobUrl = blobUrl,
-                    ContentType = file.ContentType,
-                    UploadedAt = DateTime.UtcNow,
-                    ProjectId = projectId
-                };
+	private async Task UploadFiles(Guid projectId)
+	{
+		foreach (var file in loadedFiles)
+		{
+			try
+			{
+				using var stream = file.OpenReadStream(maxFileSize);
+				var blobUrl = await BlobStorageService.UploadFileToBlobAsync(
+				$"{projectId}-{file.Name}",
+				file.ContentType,
+				stream
+				);
 
-                await dbContext.ProjectAttachments.AddAsync(attachment);
-            }
-            catch (Exception ex)
-            {
+				var attachment = new ProjectAttachment
+				{
+					FileName = file.Name,
+					BlobUrl = blobUrl,
+					ContentType = file.ContentType,
+					UploadedAt = DateTime.UtcNow,
+					ProjectId = projectId
+				};
 
-                Console.WriteLine($"Error uploading file {file.Name}: {ex.Message}");
-            }
-        }
+				await dbContext.ProjectAttachments.AddAsync(attachment);
+			}
+			catch (Exception ex)
+			{
 
-        await dbContext.SaveChangesAsync();
-        loadedFiles.Clear();
-    }
-    private async Task RemoveExistingAttachment(ProjectAttachment attachment)
-    {
-        try
-        {
-            // Remove from blob storage
-            await BlobStorageService.DeleteFileToBlobAsync($"{attachment.ProjectId}-{attachment.FileName}");
+				Console.WriteLine($"Error uploading file {file.Name}: {ex.Message}");
+			}
+		}
 
-            // Remove from database
-            dbContext.ProjectAttachments.Remove(attachment);
-            await dbContext.SaveChangesAsync();
+		await dbContext.SaveChangesAsync();
+		loadedFiles.Clear();
+	}
+	private async Task RemoveExistingAttachment(ProjectAttachment attachment)
+	{
+		try
+		{
+			// Remove from blob storage
+			await BlobStorageService.DeleteFileToBlobAsync($"{attachment.ProjectId}-{attachment.FileName}");
 
-            // Remove from local list
-            existingAttachments.Remove(attachment);
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error removing attachment {attachment.FileName}: {ex.Message}");
-        }
-    }
+			// Remove from database
+			dbContext.ProjectAttachments.Remove(attachment);
+			await dbContext.SaveChangesAsync();
+
+			// Remove from local list
+			existingAttachments.Remove(attachment);
+			StateHasChanged();
+		}
+		catch (Exception ex)
+		{
+			Console.WriteLine($"Error removing attachment {attachment.FileName}: {ex.Message}");
+		}
+	}
+	private void NavigateToList()
+	{
+		navManager.NavigateTo("/");
+	}
 }
 
