@@ -1,0 +1,120 @@
+﻿@page "/forum/add"
+@using CRM.AzureBlobStorage.Interface
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+
+
+<h3>Add a question</h3>
+@if (Success == true)
+{
+    <div class="alert alert-success" role="alert">
+        Question posted successfully!
+        
+    </div>
+}
+else if(Success==false)
+{
+    <div class="alert alert-success" role="alert">
+        Question post failed! @messages
+        
+    </div>
+}
+
+<EditForm Model="model" OnValidSubmit="OnSubmit" FormName="FAQ/Forum">
+
+    <div class="col-md-6">
+        <div class="form-floating mb-3">
+            <InputSelect @bind-Value="model.CustomerId" class="form-select" id="customer">
+                <option value="">Select Customer</option>
+                @foreach (var customer in Customers)
+                {
+                    <option value="@customer.CustomerId">@customer.Name</option>
+                }
+            </InputSelect>
+            <label for="customer" class="form-label">Customer</label>
+            <ValidationMessage For="@(() => model.CustomerId)" />
+        </div>
+    </div>
+    <div class="form-floating mb-3">
+        <InputText @bind-Value="model.Title"
+                   class="form-control"
+                   id="Title"
+                   placeholder="Title" />
+        <label for="Title">Question Title</label>
+        <ValidationMessage For="@(() => model.Title)" />
+    </div>
+
+
+    <div class="form-floating mb-3">
+        <InputTextArea @bind-Value="model.Content"
+                       class="form-control"
+                       id="Comments"
+                       placeholder="Question"
+                       style="height: 300px;" />
+        <label for="Content">Input description of question/problem</label>
+        <ValidationMessage For="@(() => model.Content)" />
+    </div>
+
+
+
+    <div class="col">
+        <button class="btn btn-primary me-2" type="submit">Post</button>
+        <button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+    </div>
+
+
+</EditForm>
+
+
+
+
+
+
+
+
+
+@code {
+    private Forum model = new Forum();
+    private List<Customer> Customers { get; set; } = new();
+    private string? messages { get; set; }
+    private bool? Success;
+    protected override async Task OnInitializedAsync()
+    {
+        Customers = await dbContext.Customers.ToListAsync();
+    }
+
+    private async Task OnSubmit()
+    {
+        try
+        {
+            model.Id = Guid.NewGuid();
+            await dbContext.Forums.AddAsync(model);
+            var result = await dbContext.SaveChangesAsync();
+            model = new Forum();
+            Success = true;
+
+        }
+
+        catch (Exception ex)
+        {
+            messages = $"error saving post:{ex.Message}";
+            Success = false;
+        }
+
+
+
+    }
+    private void NavigateToList()
+    {
+        navManager.NavigateTo("/");
+    }
+
+}

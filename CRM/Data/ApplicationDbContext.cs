@@ -12,6 +12,7 @@ namespace CRM.Data
         public DbSet<Device> Devices { get; set; }
         public DbSet<DeviceType> DeviceTypes { get; set; }
         public DbSet<CustomerInteractions> CustomerInteractions { get; set; }
+        public DbSet<Forum> Forums { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
