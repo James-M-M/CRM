@@ -12,7 +12,19 @@
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.EntityFrameworkCore
 
-<h3>Reply</h3>
+<h3>FAQ</h3>
+
+<div class="d-flex align-items-center">
+    <div class="col-md-2 "></div>
+    <div class="col-md-8">
+        <InputText @bind-Value="searchTerm" placeholder="Search questions..." class="form-control" @onkeyup="HandleKeyUp" />
+    </div>
+</div>
+
+
+
+
+
 
 <div class="table-responsive">
     <table class="table table-striped">
@@ -45,6 +57,7 @@
 
 @code {
     private List<Forum> Questions = new();
+    private string searchTerm = string.Empty;
 
     protected override async Task OnInitializedAsync()
     {
@@ -52,6 +65,16 @@
             .Include(p => p.Customer)
             .ToListAsync();
     }
+
+    protected async Task SearchQuestions()
+    {
+        Questions= await dbContext.Forums
+            .Include(p => p.Customer)
+            .Where(f => f.Title.Contains(searchTerm) || f.Content.Contains(searchTerm))
+            .ToListAsync();
+        await Task.Run(async () => await InvokeAsync(StateHasChanged));
+    }
+
     private void ReplyToQuestion(Guid Id)
     {
         navManager.NavigateTo($"/forums/reply/{Id}");
@@ -60,5 +83,12 @@
     private void ViewQuestion(Guid Id)
     {
         navManager.NavigateTo($"/forums/view/{Id}");
+    }
+    private void HandleKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            SearchQuestions();
+        }
     }
 }

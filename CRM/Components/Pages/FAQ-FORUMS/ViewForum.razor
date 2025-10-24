@@ -94,7 +94,7 @@ else
                 return;
             }
 
-            // Include replies and their customers so we can render author and timestamp
+            
             ForumItem = await dbContext.Forums
                 .Include(f => f.Customer)
                 .Include(f => f.Replies)

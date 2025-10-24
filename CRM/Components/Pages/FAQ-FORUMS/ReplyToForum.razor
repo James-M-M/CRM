@@ -86,11 +86,11 @@ else if (LoadError != null)
                     return;
                 }
 
-                // Initialize the reply with forum relationship
+                
                 replyModel.ForumId = ForumItem.Id;
                 replyModel.CreatedAt = DateTime.UtcNow;
 
-                // Get the current user's customer record
+                
                 if (CurrentUser?.Identity?.IsAuthenticated == true)
                 {
                     var customer = await dbContext.Customers
@@ -129,6 +129,6 @@ else if (LoadError != null)
 
     private void NavigateToList()
     {
-        navManager.NavigateTo($"/forums/view/{Id}");
+        navManager.NavigateTo($"/forum/viewquestions");
     }
 }
