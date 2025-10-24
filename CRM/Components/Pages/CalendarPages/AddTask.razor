@@ -20,21 +20,26 @@
             <RadzenTextBox @bind-Value="@model.Text" Name="Text" Style="width: 12rem;" />
             <RadzenRequiredValidator Component="Text" Text="Title is required" />
         </RadzenStack>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="Start" Style="width: 4rem;" />
             <RadzenDatePicker @bind-Value="@model.Start" Name="Start" ShowTime="true" Style="width: 12rem;" />
             <RadzenRequiredValidator Component="Start" Text="Start is required" />
         </RadzenStack>
+
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="End" Style="width: 4rem;" />
-            <RadzenDatePicker Name="End" @bind-Value="@model.end" ShowTime="true" Style="width: 12rem;" />
+            <RadzenDatePicker Name="End" @bind-Value="@model.End" ShowTime="true" Style="width: 12rem;" />
             <RadzenRequiredValidator Component="End" Text="End is required" />
         </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
-            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
+
+        
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.Start">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Save" Style="margin-top: 1rem;" />
         </RadzenStack>
     </RadzenStack>
 </RadzenTemplateForm>
+
 @code {
     [Parameter]
     public DateTime Start { get; set; }
@@ -47,7 +52,7 @@
     protected override void OnParametersSet()
     {
         model.Start = Start;
-        model.end = End;
+        model.End = End;
     }
 
     private async Task OnSubmit(Calendar model)

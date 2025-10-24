@@ -9,10 +9,150 @@
 @inject ApplicationDbContext dbContext
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@using Microsoft.AspNetCore.Components.Forms
+@inject DialogService DialogService
+@inject IJSRuntime JSRuntime
 
 <h3>Schedule</h3>
 
-@code{
+@if (!isLoaded)
+{
+    <div class="alert alert-info">Loading calendar... (@(appointments?.Count ?? 0) appointments found)</div>
+}
+else if (!appointments.Any())
+{
+    <div class="alert alert-warning">No appointments found in database.</div>
+}
 
+<RadzenScheduler @ref="scheduler"
+                 Style="height: 768px;"
+                 Data="@appointments"
+                 TItem="Calendar"
+                 StartProperty="Start"
+                 EndProperty="End"
+                 TextProperty="Text"
+                 IdProperty="CalendarId"
+                 LoadData="@OnLoadData"
+                 SlotSelect="@OnSlotSelect"
+                 AppointmentSelect="@OnAppointmentSelect">
+    <RadzenDayView />
+    <RadzenWeekView />
+    <RadzenMonthView />
+</RadzenScheduler>
+
+@code {
+    RadzenScheduler<Calendar>? scheduler;
+    IList<Calendar> appointments = new List<Calendar>();
+    bool isLoaded;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Initial data load
+            appointments = await dbContext.Calendars.ToListAsync();
+            Console.WriteLine($"Initial load found {appointments.Count} appointments");
+            
+            // Debug first few items
+            foreach (var appt in appointments.Take(2))
+            {
+                Console.WriteLine($"Appointment: {appt.CalendarId} - {appt.Text} ({appt.Start:g} -> {appt.End:g})");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading appointments: {ex.Message}");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                isLoaded = true;
+                StateHasChanged();
+                
+                // Ensure JS is ready
+                await Task.Delay(100);
+                if (scheduler != null)
+                {
+                    await scheduler.Reload();
+                    Console.WriteLine("Scheduler reloaded");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error in OnAfterRenderAsync: {ex.Message}");
+            }
+        }
+    }
+
+    async Task OnLoadData(SchedulerLoadDataEventArgs args)
+    {
+        try
+        {
+            // Refresh data for the requested time range
+            appointments = await dbContext.Calendars
+                .Where(c => c.Start <= args.End && c.End >= args.Start)
+                .ToListAsync();
+            
+            Console.WriteLine($"LoadData found {appointments.Count} appointments between {args.Start:d} and {args.End:d}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in LoadData: {ex.Message}");
+        }
+    }
+
+    async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+    {
+        try
+        {
+            var appointment = new Calendar
+            {
+                Start = args.Start,
+                End = args.End,
+                Text = string.Empty
+            };
+
+            await ShowEditDialog(appointment, true);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in OnSlotSelect: {ex.Message}");
+        }
+    }
+
+    async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<Calendar> args)
+    {
+        if (args?.Data != null)
+        {
+            await ShowEditDialog(args.Data, false);
+        }
+    }
+
+    async Task ShowEditDialog(Calendar appointment, bool isNew)
+    {
+        try
+        {
+            var dialogResult = await DialogService.OpenAsync<EditTask>("Edit Task",
+                new Dictionary<string, object> { { "Appointment", appointment } },
+                new DialogOptions { Width = "700px", Height = "512px" });
+
+            if (dialogResult != null)
+            {
+                appointments = await dbContext.Calendars.ToListAsync();
+                if (scheduler != null)
+                {
+                    await scheduler.Reload();
+                }
+                StateHasChanged();
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error in ShowEditDialog: {ex.Message}");
+        }
+    }
 }

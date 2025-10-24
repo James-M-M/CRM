@@ -1,6 +1,4 @@
 ﻿@page "/calendar/edittask"
-
-<h3>Edit Task</h3>
 @inject DialogService DialogService
 @using CRM.AzureBlobStorage.Interface
 @using CRM.Data.DTO
@@ -13,6 +11,7 @@
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
+
 <RadzenTemplateForm TItem="Calendar" Data="@model" Submit=@OnSubmit>
     <RadzenStack Gap="1rem">
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
@@ -27,14 +26,19 @@
         </RadzenStack>
         <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
             <RadzenLabel Text="End" Style="width: 6rem;" />
-            <RadzenDatePicker Name="End" @bind-Value="@model.end" ShowTime="true" Style="width: 12rem;" />
+            <RadzenDatePicker Name="End" @bind-Value="@model.End" ShowTime="true" Style="width: 12rem;" />
             <RadzenRequiredValidator Component="End" Text="End is required" />
         </RadzenStack>
-        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+        <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End" Gap="1rem">
+            @if (model.CalendarId != Guid.Empty)
+            {
+                <RadzenButton ButtonStyle="ButtonStyle.Danger" Click=@OnDelete Text="Delete" />
+            }
             <RadzenButton ButtonType="ButtonType.Submit" Text="Save" />
         </RadzenStack>
     </RadzenStack>
 </RadzenTemplateForm>
+
 @code {
     [Parameter]
     public Calendar Appointment { get; set; }
@@ -43,15 +47,33 @@
 
     protected override void OnParametersSet()
     {
-        model = Appointment;
+        model = Appointment ?? new Calendar();
     }
 
     async Task OnSubmit(Calendar model)
     {
-        model.CalendarId = Guid.NewGuid();
-        await dbContext.Calendars.AddAsync(model);
-        var result = await dbContext.SaveChangesAsync();
-        navManager.NavigateTo("/calendar/schedule");
+        if (model.CalendarId == Guid.Empty)
+        {
+            model.CalendarId = Guid.NewGuid();
+            await dbContext.Calendars.AddAsync(model);
+        }
+        else
+        {
+            dbContext.Calendars.Update(model);
+        }
+        
+        await dbContext.SaveChangesAsync();
+        DialogService.Close(model);
+    }
+
+    async Task OnDelete()
+    {
+        if (model.CalendarId != Guid.Empty)
+        {
+            dbContext.Calendars.Remove(model);
+            await dbContext.SaveChangesAsync();
+        }
+        DialogService.Close(null);
     }
 }
 
