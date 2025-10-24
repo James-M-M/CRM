@@ -10,6 +10,7 @@
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.EntityFrameworkCore
 
 <h3>Reply</h3>
 
@@ -29,9 +30,12 @@
                     <td>@question.Title</td>
                     <td>@question.Customer?.Name</td>
                     <td>
-                        <button class="btn btn-primary" type="button" @onclick="() => ReplyToQuestion(question.Id)">
-                        Reply
-                    </button>
+                        <button class="btn btn-sm btn-secondary me-2" type="button" @onclick="() => ViewQuestion(question.Id)">
+                            View
+                        </button>
+                        <button class="btn btn-sm btn-primary" type="button" @onclick="() => ReplyToQuestion(question.Id)">
+                            Reply
+                        </button>
                     </td>
                 </tr>
             }
@@ -41,7 +45,7 @@
 
 @code {
     private List<Forum> Questions = new();
-    
+
     protected override async Task OnInitializedAsync()
     {
         Questions = await dbContext.Forums
@@ -51,5 +55,10 @@
     private void ReplyToQuestion(Guid Id)
     {
         navManager.NavigateTo($"/forums/reply/{Id}");
+    }
+
+    private void ViewQuestion(Guid Id)
+    {
+        navManager.NavigateTo($"/forums/view/{Id}");
     }
 }

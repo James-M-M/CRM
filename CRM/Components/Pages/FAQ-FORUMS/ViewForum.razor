@@ -1,0 +1,127 @@
+﻿@page "/forums/view/{Id:guid}"
+@using Microsoft.EntityFrameworkCore
+@using CRM.Data
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject ILogger<ViewForum> Logger
+
+<h3>View Question</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <strong>Error loading forum:</strong>
+        <div>@ErrorMessage</div>
+        <div class="mt-2">
+            <button class="btn btn-sm btn-secondary" @onclick="Reload">Retry</button>
+        </div>
+    </div>
+}
+else if (IsLoading)
+{
+    <div>Loading...</div>
+}
+else if (ForumItem == null)
+{
+    <div class="alert alert-warning">Question not found.</div>
+}
+else
+{
+    <div class="card mb-3">
+        <div class="card-header">
+            <strong>@ForumItem.Title</strong>
+            <div class="text-muted">Posted by: @ForumItem.Customer?.Name on @ForumItem.CreatedAt.ToLocalTime().ToString("g")</div>
+        </div>
+        <div class="card-body">
+            <p>@ForumItem.Content</p>
+        </div>
+        <div class="card-footer">
+            <button class="btn btn-primary me-2" @onclick='() => navManager.NavigateTo($"/forums/reply/{ForumItem.Id}")'>Reply</button>
+            <button class="btn btn-secondary" @onclick='() => navManager.NavigateTo("/forum/viewquestions")'>Back to list</button>
+        </div>
+    </div>
+
+    <h5>Replies (@RepliesList.Count)</h5>
+    @if (RepliesList.Count == 0)
+    {
+        <div class="text-muted">No replies yet.</div>
+    }
+    else
+    {
+        <div class="list-group">
+            @foreach (var r in RepliesList)
+            {
+                <div class="list-group-item">
+                    <div class="d-flex w-100 justify-content-between">
+                        <small class="text-muted">@r.Customer?.Name ?? "Unknown"</small>
+                        <small class="text-muted">@r.CreatedAt.ToLocalTime().ToString("g")</small>
+                    </div>
+                    <div class="mt-2" style="white-space:pre-wrap">@r.Content</div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Forum? ForumItem;
+    private List<Reply> RepliesList = new();
+    private string? ErrorMessage;
+    private bool IsLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        ErrorMessage = null;
+        IsLoading = true;
+        ForumItem = null;
+        RepliesList.Clear();
+
+        try
+        {
+            if (Id == Guid.Empty)
+            {
+                ErrorMessage = "Invalid forum Id.";
+                return;
+            }
+
+            // Include replies and their customers so we can render author and timestamp
+            ForumItem = await dbContext.Forums
+                .Include(f => f.Customer)
+                .Include(f => f.Replies)
+                    .ThenInclude(r => r.Customer)
+                .FirstOrDefaultAsync(f => f.Id == Id);
+
+            if (ForumItem != null)
+            {
+                RepliesList = ForumItem.Replies?
+                    .OrderBy(r => r.CreatedAt)
+                    .ToList()
+                    ?? new List<Reply>();
+            }
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = ex.Message + (ex.InnerException != null ? $" — {ex.InnerException.Message}" : "");
+            Logger?.LogError(ex, "Error loading forum {ForumId}", Id);
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+
+    private async Task Reload()
+    {
+        await LoadAsync();
+    }
+}

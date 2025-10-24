@@ -1,0 +1,134 @@
+﻿@page "/forums/reply/{Id:guid}"
+@using CRM.AzureBlobStorage.Interface
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+
+<h3>Reply to Question</h3>
+
+@if (ForumItem != null)
+{
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>@ForumItem.Title</h4>
+            <small class="text-muted">Posted by: @ForumItem.Customer?.Name on @ForumItem.CreatedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</small>
+        </div>
+        <div class="card-body">
+            <p>@ForumItem.Content</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header">
+            <h5>Your Reply</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="replyModel" OnValidSubmit="OnSubmit">
+                <DataAnnotationsValidator />
+
+                <div class="form-floating mb-3">
+                    <InputTextArea @bind-Value="replyModel.Content"
+                                 class="form-control"
+                                 id="replyContent"
+                                 placeholder="Your reply"
+                                 style="height: 150px;" />
+                    <label for="replyContent">Enter your reply</label>
+                    <ValidationMessage For="@(() => replyModel.Content)" />
+                </div>
+
+                <div>
+                    <button class="btn btn-primary me-2" type="submit">Submit Reply</button>
+                    <button class="btn btn-secondary" type="button" @onclick="NavigateToList">Cancel</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+}
+else if (LoadError != null)
+{
+    <div class="alert alert-danger">
+        Error loading forum: @LoadError
+    </div>
+}
+
+@code {
+    [Parameter]
+    public Guid Id { get; set; }
+
+    private Forum? ForumItem;
+    private Reply replyModel = new();
+    private string? LoadError;
+    private ClaimsPrincipal? CurrentUser;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            CurrentUser = authState.User;
+
+            if (Id != Guid.Empty)
+            {
+                ForumItem = await dbContext.Forums
+                    .Include(p => p.Customer)
+                    .FirstOrDefaultAsync(f => f.Id == Id);
+
+                if (ForumItem == null)
+                {
+                    LoadError = "Forum not found";
+                    return;
+                }
+
+                // Initialize the reply with forum relationship
+                replyModel.ForumId = ForumItem.Id;
+                replyModel.CreatedAt = DateTime.UtcNow;
+
+                // Get the current user's customer record
+                if (CurrentUser?.Identity?.IsAuthenticated == true)
+                {
+                    var customer = await dbContext.Customers
+                        .FirstOrDefaultAsync(c => c.UserID == CurrentUser.FindFirstValue(ClaimTypes.NameIdentifier));
+                    
+                    if (customer != null)
+                    {
+                        replyModel.CustomerId = customer.CustomerId;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            LoadError = ex.Message;
+        }
+    }
+
+    private async Task OnSubmit()
+    {
+        if (ForumItem != null && !string.IsNullOrWhiteSpace(replyModel.Content))
+        {
+            try
+            {
+                // Add the new reply
+                await dbContext.AddAsync(replyModel);
+                await dbContext.SaveChangesAsync();
+                NavigateToList();
+            }
+            catch (Exception ex)
+            {
+                LoadError = $"Error saving reply: {ex.Message}";
+            }
+        }
+    }
+
+    private void NavigateToList()
+    {
+        navManager.NavigateTo($"/forums/view/{Id}");
+    }
+}
