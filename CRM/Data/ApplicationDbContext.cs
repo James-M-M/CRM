@@ -14,6 +14,7 @@ namespace CRM.Data
         public DbSet<CustomerInteractions> CustomerInteractions { get; set; }
         public DbSet<Forum> Forums { get; set; }
         public DbSet<Calendar> Calendars { get; set; }
+        public DbSet<Invoice> Invoices { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -34,7 +35,14 @@ namespace CRM.Data
                 .OnDelete(DeleteBehavior.Cascade);
             builder.Entity<Project>()
                 .HasMany(p => p.AssignedStaff);
-           // builder.Entity<Staff>().HasMany(s => s.Devices);
+            builder.Entity<Invoice>()
+                .HasOne(i => i.Project)
+                .WithMany()
+                .HasForeignKey(i => i.ProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+
+            // builder.Entity<Staff>().HasMany(s => s.Devices);
         }
     }
 }

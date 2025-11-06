@@ -1,0 +1,121 @@
+﻿@page "/invoice/generate"
+@using CRM.AzureBlobStorage.Interface
+@using CRM.Data.DTO
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using System.ComponentModel.DataAnnotations
+@using System.Security.Claims
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@using Microsoft.AspNetCore.Components.Forms
+
+<h3>Invoice Generation</h3>
+
+<EditForm Model="InvoiceModel" OnValidSubmit="Onsubmit" FormName="InvoiceGenerator">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-12 col-md-8">
+
+                <div class="form-floating mb-3">
+                    <p>Hourly Rate:</p>
+                    <RadzenNumeric TValue="double" Format="c" @bind-Value="InvoiceModel.HourlyRate" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <p>Hours Worked:</p>
+                    <RadzenNumeric Placeholder="0.0" Step="0.5" @bind-Value="InvoiceModel.HoursWorked" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <p>Payment Date</p>
+                    <RadzenDatePicker @bind-Value="InvoiceModel.Paymentdate" ShowCalendarWeek />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <p>Business Name</p>
+                    <InputText @bind-Value="InvoiceModel.BusinessName" class="form-control" id="businessName" placeholder="Business Name" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="InvoiceModel.CustomerId" class="form-select" id="customer">
+                        <option value="">Select Customer</option>
+                        @foreach (var customer in Customers)
+                        {
+                            <option value="@customer.CustomerId">@customer.Name</option>
+                        }
+                    </InputSelect>
+                    <label for="customer" class="form-label">Customer</label>
+                    <ValidationMessage For="@(() => InvoiceModel.CustomerId)" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="InvoiceModel.ProjectId" class="form-select" id="project">
+                        <option value="">Select project</option>
+                        @foreach (var project in projects)
+                        {
+                            <option value="@project.ProjectId">@project.Name</option>
+                        }
+                    </InputSelect>
+                    <label for="Project" class="form-label">Project</label>
+                    <ValidationMessage For="@(() => InvoiceModel.ProjectId)" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputSelect @bind-Value="InvoiceModel.StaffId" class="form-select" id="staff">
+                        <option value="">Select staff member</option>
+                        @foreach (var staff in Staffs)
+                        {
+                            <option value="@staff.StaffId">@staff.StaffName</option>
+                        }
+                    </InputSelect>
+                    <label for="staff" class="form-label">staff</label>
+                    <ValidationMessage For="@(() => InvoiceModel.StaffId)" />
+                </div>
+
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputTextArea @bind-Value="InvoiceModel.Content"
+                               class="form-control"
+                               id="details"
+                               placeholder="Invoice details"
+                               style="height: 100px;" />
+                <label for="details" class="form-label">Invoice Content</label>
+                <ValidationMessage For="@(() => InvoiceModel.Content)" />
+            </div>
+
+
+            <div class="row mt-3">
+                <div class="col-auto">
+                    <button class="btn btn-primary me-2" type="submit">Generate Invoice</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+</EditForm>
+
+
+
+@code {
+    private Invoice InvoiceModel { get; set; } = new();
+    private List<Customer> Customers { get; set; } = new();
+    private List<Staff> Staffs { get; set; } = new();
+    private List<Project> projects { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        Customers = await dbContext.Customers.ToListAsync();
+        Staffs = await dbContext.Staff.ToListAsync();
+        projects = await dbContext.Projects.ToListAsync();
+    }
+    private async Task Onsubmit()
+    {
+       int InvoiceNum = InvoiceModel.InvoiceNumber + 1;
+    }
+}
