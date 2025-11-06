@@ -5,13 +5,25 @@
 @using CRM.Data
 @using System.ComponentModel.DataAnnotations
 @using System.Security.Claims
+@using Microsoft.EntityFrameworkCore
+@using System.IO
 @attribute [Authorize]
 @inject ApplicationDbContext dbContext
 @inject NavigationManager navManager
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IBlobStorageService BlobStorageService
+@inject ILogger<GenerateInvoice> logger
 @using Microsoft.AspNetCore.Components.Forms
+@using QuestPDF.Fluent
+@using QuestPDF.Helpers
+@using QuestPDF.Infrastructure
 
 <h3>Invoice Generation</h3>
+
+@if (!string.IsNullOrEmpty(ErrorMessage))
+{
+    <div class="alert alert-danger">@ErrorMessage</div>
+}
 
 <EditForm Model="InvoiceModel" OnValidSubmit="Onsubmit" FormName="InvoiceGenerator">
     <DataAnnotationsValidator />
@@ -91,22 +103,20 @@
 
             <div class="row mt-3">
                 <div class="col-auto">
-                    <button class="btn btn-primary me-2" type="submit">Generate Invoice</button>
+                    <button class="btn btn-primary me-2" type="submit" disabled="@isBusy">@(isBusy ? "Generating..." : "Generate Invoice")</button>
                 </div>
             </div>
         </div>
     </div>
-
-
 </EditForm>
-
-
 
 @code {
     private Invoice InvoiceModel { get; set; } = new();
     private List<Customer> Customers { get; set; } = new();
     private List<Staff> Staffs { get; set; } = new();
     private List<Project> projects { get; set; } = new();
+    private string? ErrorMessage { get; set; }
+    private bool isBusy = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -114,8 +124,147 @@
         Staffs = await dbContext.Staff.ToListAsync();
         projects = await dbContext.Projects.ToListAsync();
     }
+
     private async Task Onsubmit()
     {
-       int InvoiceNum = InvoiceModel.InvoiceNumber + 1;
+        ErrorMessage = null;
+        isBusy = true;
+        try
+        {
+            // calculate next invoice number (uses the largest existing InvoiceNumber)
+            var lastInvoice = await dbContext.Invoices
+                .OrderByDescending(i => i.InvoiceNumber)
+                .FirstOrDefaultAsync();
+
+            int invoiceNum = (lastInvoice?.InvoiceNumber ?? 0) + 1;
+            InvoiceModel.InvoiceNumber = invoiceNum;
+            InvoiceModel.Id = Guid.NewGuid();
+            InvoiceModel.InvoiceDate = DateTime.UtcNow;
+            InvoiceModel.ChargedAmount = InvoiceModel.HoursWorked * InvoiceModel.HourlyRate;
+
+            var customer = await dbContext.Customers.FirstOrDefaultAsync(c => c.CustomerId == InvoiceModel.CustomerId);
+            var staff = await dbContext.Staff.FirstOrDefaultAsync(s => s.StaffId == InvoiceModel.StaffId);
+            var project = await dbContext.Projects.FirstOrDefaultAsync(p => p.ProjectId == InvoiceModel.ProjectId);
+
+            // Generate PDF into memory stream
+            using var ms = new MemoryStream();
+
+            Document.Create(container =>
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A4);
+                    page.Margin(2, Unit.Centimetre);
+                    page.DefaultTextStyle(x => x.FontSize(10));
+
+                    page.Header()
+                        .PaddingBottom(1, Unit.Centimetre)
+                        .Row(row =>
+                        {
+                            row.ConstantItem(140).Height(50).Image("wwwroot/images/logo.png");
+                            row.RelativeItem().Column(col =>
+                            {
+                                col.Item().Text(InvoiceModel.BusinessName).FontSize(20).Bold();
+                                col.Item().Text("Invoice #" + InvoiceModel.InvoiceNumber.ToString("D6"));
+                                col.Item().Text($"Date: {InvoiceModel.InvoiceDate:d}");
+                            });
+                        });
+
+                    page.Content()
+                        .PaddingVertical(1, Unit.Centimetre)
+                        .Column(col =>
+                        {
+                            // Bill To section
+                            col.Item().Column(column =>
+                            {
+                                column.Item().Text("Bill To:").Bold();
+                                column.Item().Text(customer?.Name ?? string.Empty);
+                                column.Item().Text(customer?.Address ?? string.Empty);
+                                column.Item().Text($"Email: {customer?.EmailContact ?? string.Empty}");
+                                column.Item().Text($"Phone: {customer?.PhoneContact ?? string.Empty}");
+                            });
+
+                            // Project Details
+                            col.Item().PaddingTop(1, Unit.Centimetre).Column(column =>
+                            {
+                                column.Item().Text("Project Details:").Bold();
+                                column.Item().Text($"Project: {project?.Name ?? string.Empty}");
+                                column.Item().Text($"Staff Member: {staff?.StaffName ?? string.Empty}");
+                            });
+
+                            // Invoice Details
+                            col.Item().PaddingTop(1, Unit.Centimetre).Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.RelativeColumn(3);
+                                    columns.RelativeColumn();
+                                    columns.RelativeColumn();
+                                    columns.RelativeColumn();
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Text("Description").Bold();
+                                    header.Cell().Text("Hours").Bold();
+                                    header.Cell().Text("Rate").Bold();
+                                    header.Cell().Text("Amount").Bold();
+                                });
+
+                                table.Cell().Text(InvoiceModel.Content ?? string.Empty);
+                                table.Cell().Text(InvoiceModel.HoursWorked.ToString());
+                                table.Cell().Text($"{InvoiceModel.HourlyRate:C}");
+                                table.Cell().Text($"{InvoiceModel.ChargedAmount:C}");
+                            });
+
+                            // Total Amount
+                            col.Item().PaddingTop(1, Unit.Centimetre).AlignRight()
+                                .Text($"Total Amount: {InvoiceModel.ChargedAmount:C}").Bold();
+
+                            // Payment Terms
+                            col.Item().PaddingTop(1, Unit.Centimetre).Column(column =>
+                            {
+                                column.Item().Text("Payment Terms:").Bold();
+                                column.Item().Text($"Due Date: {InvoiceModel.Paymentdate:d}");
+                            });
+                        });
+
+                    page.Footer()
+                        .AlignCenter()
+                        .Text(x =>
+                        {
+                            x.Span("Page ");
+                            x.CurrentPageNumber();
+                        });
+                });
+            })
+            .GeneratePdf(ms);
+
+            ms.Position = 0;
+
+            // Upload to blob storage
+            var fileName = $"invoices/Invoice_{InvoiceModel.InvoiceNumber:D6}_{InvoiceModel.Id}.pdf";
+            var blobUrl = await BlobStorageService.UploadFileToBlobAsync(fileName, "application/pdf", ms);
+
+            InvoiceModel.FileName = Path.GetFileName(fileName);
+            InvoiceModel.BlobUrl = blobUrl;
+
+            // Save invoice to database
+            await dbContext.Invoices.AddAsync(InvoiceModel);
+            await dbContext.SaveChangesAsync();
+
+            // Navigate to viewer
+            navManager.NavigateTo($"/invoice/view/{InvoiceModel.Id}");
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = "Failed to generate invoice: " + ex.Message;
+            logger.LogError(ex, "Invoice generation failed.");
+        }
+        finally
+        {
+            isBusy = false;
+            StateHasChanged();
+        }
     }
 }

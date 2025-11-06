@@ -17,7 +17,9 @@
         public Staff Staff { get; set; }
         public Customer Customer { get; set; }
         public Guid CustomerId { get; set; }
-        
 
+        // New — PDF metadata saved after uploading to blob storage
+        public string? FileName { get; set; }
+        public string? BlobUrl { get; set; }
     }
 }

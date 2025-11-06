@@ -1,0 +1,50 @@
+﻿@page "/invoice/view/{Id:guid}"
+@using CRM.Data
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<h3>View Invoice</h3>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (invoice == null)
+{
+    <div class="alert alert-warning">Invoice not found.</div>
+}
+else if (!string.IsNullOrEmpty(invoice.BlobUrl))
+{
+    <div class="mb-3">
+        <a class="btn btn-secondary me-2" @onclick='() => navManager.NavigateTo("/invoices")'>Back to list</a>
+        <a class="btn btn-primary me-2" href="@invoice.BlobUrl" target="_blank">Open in new tab</a>
+        <a class="btn btn-success" href="@invoice.BlobUrl" download="@invoice.FileName">Download PDF</a>
+    </div>
+
+    <iframe src="@invoice.BlobUrl" width="100%" height="800px"></iframe>
+}
+else
+{
+    <div class="alert alert-info">No PDF available for this invoice.</div>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private Invoice? invoice;
+    private bool loading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        loading = true;
+        invoice = await dbContext.Invoices.FindAsync(Id);
+        loading = false;
+        if (invoice == null)
+        {
+            // invoice not found, navigate back
+            navManager.NavigateTo("/invoices");
+        }
+    }
+}

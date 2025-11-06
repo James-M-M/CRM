@@ -7,10 +7,14 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Radzen;
-
-
+using QuestPDF;
+using QuestPDF.Infrastructure; // for LicenseType
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure QuestPDF license for local/dev use
+// (set to Community for evaluation / non-production use)
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -42,7 +46,6 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 builder.Services.AddRadzenComponents();
 builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
 
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -53,22 +56,17 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
-
 
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
-    
 
-
-// Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
 app.Run();

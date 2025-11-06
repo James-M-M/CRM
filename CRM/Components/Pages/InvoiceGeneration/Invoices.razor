@@ -1,0 +1,89 @@
+@page "/invoices"
+@using CRM.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<h3>Invoices</h3>
+
+<div class="mb-3">
+    <a class="btn btn-primary" href="/invoice/generate">Generate Invoice</a>
+</div>
+
+@if (loading)
+{
+    <p>Loading...</p>
+}
+else if (!invoices.Any())
+{
+    <div class="alert alert-info">No invoices found.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-striped table-bordered">
+            <thead>
+                <tr>
+                    <th>Invoice #</th>
+                    <th>Business</th>
+                    <th>Customer</th>
+                    <th>Project</th>
+                    <th>Invoice Date</th>
+                    <th>Due</th>
+                    <th class="text-end">Amount</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var inv in invoices)
+                {
+                    <tr>
+                        <td>@inv.InvoiceNumber.ToString("D6")</td>
+                        <td>@inv.BusinessName</td>
+                        <td>@inv.Customer?.Name</td>
+                        <td>@inv.Project?.Name</td>
+                        <td>@inv.InvoiceDate.ToString("d")</td>
+                        <td>@inv.Paymentdate.ToString("d")</td>
+                        <td class="text-end">@inv.ChargedAmount.ToString("C")</td>
+                        <td>
+                            <button class="btn btn-sm btn-secondary me-1" @onclick="() => ViewInvoice(inv.Id)">View</button>
+                            @if (!string.IsNullOrEmpty(inv.BlobUrl))
+                            {
+                                <a class="btn btn-sm btn-primary me-1" href="@inv.BlobUrl" target="_blank">Open</a>
+                                <a class="btn btn-sm btn-success" href="@inv.BlobUrl" download="@inv.FileName">Download</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+@code {
+    private List<Invoice> invoices = new();
+    private bool loading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadInvoices();
+    }
+
+    private async Task LoadInvoices()
+    {
+        loading = true;
+        invoices = await dbContext.Invoices
+            .Include(i => i.Customer)
+            .Include(i => i.Project)
+            .OrderByDescending(i => i.InvoiceDate)
+            .ToListAsync();
+        loading = false;
+    }
+
+    private void ViewInvoice(Guid id)
+    {
+        navManager.NavigateTo($"/invoice/view/{id}");
+    }
+}
