@@ -1,0 +1,124 @@
+﻿@page "/sales/graph"
+@using CRM.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Radzen.Blazor
+@using Radzen
+@using System.Globalization
+@using System.Linq
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<div style="flex: 1; max-width: 70%;">
+    <h4>Sales by Product</h4>
+
+    <div class="d-flex align-items-end mb-3">
+        <div class="me-3">
+            <label class="form-label" style="font-size:0.85rem">Start</label>
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="startDate" DateFormat="yyyy-MM-dd" Style="width:150px" />
+        </div>
+        <div class="me-3">
+            <label class="form-label" style="font-size:0.85rem">End</label>
+            <RadzenDatePicker TValue="DateTime?" @bind-Value="endDate" DateFormat="yyyy-MM-dd" Style="width:150px" />
+        </div>
+        <RadzenButton Text="Apply" Click="@(async args => await LoadSalesDataAsync())" Style="margin-left:8px" />
+        <RadzenButton Text="Last 30 days" Click="@(async args => { startDate = DateTime.Today.AddDays(-30); endDate = DateTime.Today; await LoadSalesDataAsync(); })" Style="margin-left:8px" />
+    </div>
+
+    @if (isLoading)
+    {
+        <div>Loading...</div>
+    }
+    else if (salesData == null || !salesData.Any())
+    {
+        <div>No sales found for the selected period.</div>
+    }
+    else
+    {
+        <RadzenChart style="width: 100%; height: 360px;" SeriesClick="OnSeriesClick">
+            <RadzenColumnSeries Data="@salesData"
+                                CategoryProperty="ProductName"
+                                ValueProperty="TotalAmount"
+                                Title="Total Sales">
+                <RadzenSeriesDataLabels Visible="@showDataLabels" />
+            </RadzenColumnSeries>
+            <RadzenColumnOptions Radius="5" Width="30" />
+            <RadzenCategoryAxis Padding="20">
+                <RadzenAxisTitle Text="Product Name" />
+            </RadzenCategoryAxis>
+            <RadzenValueAxis>
+                <RadzenGridLines Visible="true" />
+                <RadzenAxisTitle Text="Total Sales" />
+            </RadzenValueAxis>
+        </RadzenChart>
+    }
+</div>
+
+@code {
+    private bool showDataLabels = true;
+    private List<SalesSummary> salesData;
+    private DateTime? startDate;
+    private DateTime? endDate;
+    private bool isLoading;
+
+    protected override async Task OnInitializedAsync()
+    {
+        endDate = DateTime.Today;
+        startDate = endDate.Value.AddDays(-30);
+        await LoadSalesDataAsync();
+    }
+
+    private async Task LoadSalesDataAsync()
+    {
+        isLoading = true;
+        try
+        {
+            if (startDate == null || endDate == null)
+            {
+                salesData = new List<SalesSummary>();
+                return;
+            }
+
+            // include entire end day
+            var start = startDate.Value.Date;
+            var end = endDate.Value.Date.AddDays(1).AddTicks(-1);
+
+            salesData = await dbContext.Sales
+                .AsNoTracking()
+                .Where(s => s.SaleDate >= start && s.SaleDate <= end)
+                .GroupBy(s => s.ProductName)
+                .Select(g => new SalesSummary
+                {
+                    ProductName = g.Key,
+                    TotalAmount = g.Sum(s => s.Price * s.Quantity),
+                    TotalQuantity = g.Sum(s => s.Quantity)
+                })
+                .OrderByDescending(x => x.TotalAmount)
+                .ToListAsync();
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OnSeriesClick(SeriesClickEventArgs args)
+    {
+        // args.Category contains the ProductName for the clicked column
+        if (args?.Category != null)
+        {
+            var product = args.Category.ToString();
+            // navigate to a product-specific page or pass query string (adjust route as needed)
+            navManager.NavigateTo($"/sales?product={Uri.EscapeDataString(product)}");
+        }
+    }
+
+    private class SalesSummary
+    {
+        public string ProductName { get; set; }
+        public decimal TotalAmount { get; set; }
+        public int TotalQuantity { get; set; }
+    }
+}

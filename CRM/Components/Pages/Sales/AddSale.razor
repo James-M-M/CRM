@@ -1,0 +1,79 @@
+﻿@page "/sales/add"
+@using CRM.Data
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<h3>Add Sale</h3>
+
+@if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+
+<EditForm Model="sale" OnValidSubmit="HandleSubmit" FormName="add-sale">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container">
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <div class="form-floating mb-3">
+                    <InputText @bind-Value="sale.ProductName" class="form-control" id="productName" placeholder="Product Name" />
+                    <label for="productName">Product Name</label>
+                    <ValidationMessage For="@(() => sale.ProductName)" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputNumber @bind-Value="sale.Price" class="form-control" id="price" placeholder="Price" />
+                    <label for="price">Price</label>
+                    <ValidationMessage For="@(() => sale.Price)" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputNumber @bind-Value="sale.Quantity" class="form-control" id="quantity" placeholder="Quantity" />
+                    <label for="quantity">Quantity</label>
+                    <ValidationMessage For="@(() => sale.Quantity)" />
+                </div>
+
+                <div class="form-floating mb-3">
+                    <InputDate @bind-Value="sale.SaleDate" class="form-control" id="saleDate" />
+                    <label for="saleDate">Sale Date</label>
+                    <ValidationMessage For="@(() => sale.SaleDate)" />
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary me-2">Save Sale</button>
+                    <button type="button" class="btn btn-secondary" @onclick="NavigateToGraph">Cancel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Sale sale = new() { SaleDate = DateTime.Today };
+    private string? errorMessage;
+
+    private async Task HandleSubmit()
+    {
+        try
+        {
+            sale.Id = Guid.NewGuid();
+            await dbContext.Sales.AddAsync(sale);
+            await dbContext.SaveChangesAsync();
+            navManager.NavigateTo("/sales/graph");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = "Failed to save sale: " + ex.Message;
+        }
+    }
+
+    private void NavigateToGraph()
+    {
+        navManager.NavigateTo("/sales/graph");
+    }
+}

@@ -15,6 +15,7 @@ namespace CRM.Data
         public DbSet<Forum> Forums { get; set; }
         public DbSet<Calendar> Calendars { get; set; }
         public DbSet<Invoice> Invoices { get; set; }
+        public DbSet<Sale> Sales { get; set; }
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
