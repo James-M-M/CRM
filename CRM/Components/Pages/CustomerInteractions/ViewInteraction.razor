@@ -1,0 +1,59 @@
+﻿@page "/CustomerInteractions/ViewInteraction"
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+<h3>ViewInteraction</h3>
+
+
+<div class="table-responsive">
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Project Name</th>
+                <th>Staff Member</th>
+                <th>Customer</th>
+                <th>Interaction date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            @foreach (var Interaction in model)
+            {
+                <tr>
+                    <td>@Interaction.Project.Name</td>
+                    <td>@Interaction.Staff.StaffName</td>
+                    <td>@Interaction.Project.Customer.Name</td>
+                    <td>@Interaction.InteractionDate</td>
+                    <td>
+                        <button class="btn btn-primary" @onclick="() => ViewInteractionDetails(Interaction.Id)">
+                            View Details
+                        </button>
+                    </td>
+                   
+                        
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<CustomerInteractions> model { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = await dbContext.CustomerInteractions
+            .Include(ci => ci.Staff)
+            .Include(ci => ci.Project)
+            .Include(ci => ci.Project.Customer)
+            .ToListAsync();
+    }
+    private void ViewInteractionDetails(Guid InteractionId)
+    {
+        navManager.NavigateTo($"/CustomerInteractions/ViewInteractionDetail/{InteractionId}");
+    }
+}

@@ -1,0 +1,95 @@
+﻿@page "/CustomerInteractions/ViewInteractionDetail/{InteractionId:guid}"
+@using Microsoft.AspNetCore.Authorization
+@using CRM.Data
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
+@inject ApplicationDbContext dbContext
+@inject NavigationManager navManager
+
+<style>
+    .card{
+        width:50%;
+    }
+
+
+</style>
+
+
+
+@if (model != null)
+{
+    
+    <div class="card">
+        <div style="font-size: 1.2rem;">
+            <h2 class="card-title">Interaction Details:</h2>
+            <div class="card-body">
+                <div class="mb-3">
+                    <p><strong>Interaction ID:</strong><br /> @model.Id</p>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Project name:</strong><br />@model.Project.Name</p>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Assigned Staff:</strong><br />@model.Staff.StaffName</p>
+                </div>
+                <div class="mb-3">
+                    <p><strong>Interaction Date</strong><br />@model.InteractionDate</p>
+                </div>
+                <div class="list-group ">
+                    <strong>Customer Comments:</strong>
+                    <div class="list-group-item rounded ">
+                        <div class="mt-2" style="white-space:pre-wrap">@model.Comments</div>
+                    </div>
+                </div>
+                @if (model.Attachments?.Any() == true)
+                {
+                    <div class="mb-3">
+                        <strong>Attachments:</strong>
+                        <div class="row">
+                            @foreach (var attachment in model.Attachments)
+                            {
+                                <div class="col-md-4 mb-3">
+                                    @if (attachment.ContentType.StartsWith("image/"))
+                                    {
+                                        <img src="@attachment.BlobUrl" alt="@attachment.FileName" class="img-fluid rounded border" />
+                                    }
+                                    else
+                                    {
+                                        <a href="@attachment.BlobUrl" target="_blank">@attachment.FileName</a>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    
+}
+    
+else
+{
+    <p>Loading interaction details...</p>
+}
+
+
+
+
+
+@code {
+    private CustomerInteractions? model;
+    [Parameter]
+    public Guid InteractionId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        model = await dbContext.CustomerInteractions
+            .Include(ci => ci.Staff)
+            .Include(ci => ci.Project)
+            .Include(ci => ci.Project.Customer)
+            .FirstOrDefaultAsync(ci => ci.Id == InteractionId);
+    }
+
+    
+}
