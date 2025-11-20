@@ -10,6 +10,14 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @using Microsoft.AspNetCore.Components.Forms
 <h3>View Device</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="@(() => navManager.NavigateTo("/devices/registration"))" >
+		<i class="oi oi-plus"></i> Add New Device
+    </button>
+</div>
+
+
 <div class="table-responsive">
     <table class="table table-striped">
         <thead>

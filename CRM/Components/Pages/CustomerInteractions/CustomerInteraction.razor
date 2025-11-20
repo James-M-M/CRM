@@ -53,9 +53,11 @@
 			<div class="row">
 				<div class="col-md-6">
 					<div class="form-floating mb-3">
-						<InputDate @bind-Value="model.InteractionDate" class="form-control" id="interactionDate" />
-						<label for="interactionDate">Interaction Date</label>
-						<ValidationMessage For="@(() => model.InteractionDate)" />
+						<RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Wrap="FlexWrap.Wrap">
+							<RadzenLabel Text="Interaction Date" Style="width: 4rem;" />
+							<RadzenDatePicker @bind-Value="@model.InteractionDate" Name="InteractionDate" ShowTime="true" Style="width: 12rem;" />
+							<RadzenRequiredValidator Component="Interaction Date" Text="Date is required" />
+						</RadzenStack>
 					</div>
 				</div>
 			</div>
@@ -192,7 +194,7 @@
 		if (model.Id != Guid.Empty)
 		{
 			existingAttachments = await dbContext.ProjectAttachments
-			.Where(a => a.ProjectId == model.Id)
+			.Where(a => a.CustomerInteractionsId == model.Id)
 			.ToListAsync();
 		}
 	}
@@ -212,7 +214,11 @@
 				messages = "Interaction registered successfully.";
 				Console.WriteLine($"Interaction registered: {model.Id}, Staff: {model.StaffId}");
 
+				await UploadFiles(model.Id);
+				
 				model = new CRM.Data.CustomerInteractions(); // Reset the form
+				loadedFiles.Clear();
+				StateHasChanged();
 			}
 			else
 			{
@@ -225,9 +231,8 @@
 			messages = $"An error occurred: {ex.Message}";
 			issuccess = false;
 		}
-		await UploadFiles(model.Id);
-
 	}
+
 	private async Task OnFileChange(InputFileChangeEventArgs e)
 	{
 		loadedFiles.AddRange(e.GetMultipleFiles());
@@ -240,7 +245,7 @@
 		StateHasChanged();
 	}
 
-	private async Task UploadFiles(Guid projectId)
+	private async Task UploadFiles(Guid customerInteractionId)
 	{
 		foreach (var file in loadedFiles)
 		{
@@ -248,7 +253,7 @@
 			{
 				using var stream = file.OpenReadStream(maxFileSize);
 				var blobUrl = await BlobStorageService.UploadFileToBlobAsync(
-				$"{projectId}-{file.Name}",
+				$"{customerInteractionId}-{file.Name}",
 				file.ContentType,
 				stream
 				);
@@ -259,27 +264,26 @@
 					BlobUrl = blobUrl,
 					ContentType = file.ContentType,
 					UploadedAt = DateTime.UtcNow,
-					ProjectId = projectId
+					CustomerInteractionsId = customerInteractionId
 				};
 
 				await dbContext.ProjectAttachments.AddAsync(attachment);
 			}
 			catch (Exception ex)
 			{
-
 				Console.WriteLine($"Error uploading file {file.Name}: {ex.Message}");
 			}
 		}
 
 		await dbContext.SaveChangesAsync();
-		loadedFiles.Clear();
 	}
+
 	private async Task RemoveExistingAttachment(ProjectAttachment attachment)
 	{
 		try
 		{
 			// Remove from blob storage
-			await BlobStorageService.DeleteFileToBlobAsync($"{attachment.ProjectId}-{attachment.FileName}");
+			await BlobStorageService.DeleteFileToBlobAsync($"{attachment.CustomerInteractionsId}-{attachment.FileName}");
 
 			// Remove from database
 			dbContext.ProjectAttachments.Remove(attachment);
@@ -294,6 +298,7 @@
 			Console.WriteLine($"Error removing attachment {attachment.FileName}: {ex.Message}");
 		}
 	}
+
 	private void NavigateToList()
 	{
 		navManager.NavigateTo("/");

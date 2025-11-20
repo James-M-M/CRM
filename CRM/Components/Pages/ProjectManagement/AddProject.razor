@@ -23,6 +23,7 @@
     </div>
 }
 
+
 <EditForm Model="Project" OnValidSubmit="OnSubmit" FormName="project-info">
     <DataAnnotationsValidator />
     <ValidationSummary />
@@ -70,21 +71,24 @@
                 </div>
             </div>
             
-            <div class="col-md-6">
-                <div class="form-floating mb-3">
-                    <InputNumber @bind-Value="Project.HoursSpentOnProject" class="form-control" id="ProjectHoursLogged" placeholder="Project Hours" />
-                    <label for="ProjectHoursLogged">Project Hours Logged</label>
-                    <ValidationMessage For="@(() => Project.HoursSpentOnProject)" />
-                </div>
-            </div>
+            
             @if (ProjectId.HasValue)
             {
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        <InputNumber @bind-Value="Project.HoursSpentOnProject" class="form-control" id="ProjectHoursLogged" placeholder="Project Hours" />
+                        <label for="ProjectHoursLogged">Project Hours Logged</label>
+                        <ValidationMessage For="@(() => Project.HoursSpentOnProject)" />
+                    </div>
+                </div>
+
                 <div class="col-md-6">
                     <div class="form-check mb-3">
                         <InputCheckbox class="form-check-input" id="isCompleted" @bind-Value="Project.isCompleted" />
                         <label class="form-check-label" for="isCompleted">Project Completed</label>
                     </div>
                 </div>
+                
             }
 
 

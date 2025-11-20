@@ -7,6 +7,11 @@
 @inject NavigationManager navManager
 <h3>ViewInteraction</h3>
 
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick="@(() => navManager.NavigateTo("/CustomerInteractions"))">
+        <i class="oi oi-plus"></i> Add New Interaction
+    </button>
+</div>
 
 <div class="table-responsive">
     <table class="table table-striped">
